@@ -19,7 +19,16 @@ A very constrained web of things server can be used with a single sensor or actu
   
 ## Installation
 
-*To be written*
+The starting point is to install Git, see:
+
+  http://git-scm.com/book/en/v2/Getting-Started-Installing-Git
+
+Next create a copy of this directory and change to it as follows:
+
+```
+  git clone https://github.com/w3c/wot-arduino
+  cd wot-arduino
+```
 
 ## Contributing
 
