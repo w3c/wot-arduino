@@ -4,6 +4,7 @@
 design.txt
 readme
 notes
+test
 *.o
 
 # don't sync Visual Studio files
