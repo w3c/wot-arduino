@@ -3,6 +3,8 @@
 #include <string>
 #include "AvlNode.h"
 
+using namespace std;  // for string and memset
+
 enum Json_Tag { Array, Object, String, Number, Boolean, Null };
 
 #define null 0
@@ -14,10 +16,8 @@ class JSON
     public:
         static string stringify(JSON& obj);
         static JSON * parse(string src);
-        JSON ()
-        {
-            memset(this, sizeof(JSON), 0);
-        }
+        
+        JSON ();
         
     private:
         void to_string(string &str);

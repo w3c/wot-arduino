@@ -1,0 +1,16 @@
+# don't sync node modules that this project pulls in
+
+.DS_Store
+design.txt
+readme
+notes
+*.o
+
+# don't sync Visual Studio files
+.ntvs_analysis.dat
+bin/
+obj/
+*.njsproj
+*.suo
+*.sln
+

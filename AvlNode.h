@@ -6,11 +6,7 @@ typedef void *AvlValue;
 class AvlNode
 {
     public:
-        AvlNode()
-        {
-            std::memset(this, sizeof(AvlNode), 0);
-        }
-        
+        AvlNode(AvlKey key, AvlValue value);        
         AvlNode * avlFindKey(AvlNode *tree, AvlKey key);
         AvlNode * avlInsertKey(AvlNode *tree, AvlKey key, AvlValue value);
         AvlNode * avlFirst(AvlNode *tree);

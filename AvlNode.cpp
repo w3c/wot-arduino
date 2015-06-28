@@ -1,11 +1,21 @@
 /* AvlTrees - a variant on balanced binary trees */
 
-#include <iostream>
-using namespace std;
+#include <iostream>  // for use of std::memset in constructor
 
 #include "AvlNode.h"
 
+#ifndef NULL
+#define NULL (void *)0
+#endif
+
 #define MAX(x, y) (((x) > (y))?(x):(y))
+
+AvlNode::AvlNode(AvlKey key, AvlValue value)
+{
+    std::memset(this, sizeof(AvlNode), 0);
+    this->key = key;
+    this->value = value;
+}
 
 AvlNode *AvlNode::avlFindKey(AvlNode *tree, AvlKey key)
 {
@@ -17,7 +27,7 @@ AvlNode *AvlNode::avlFindKey(AvlNode *tree, AvlKey key)
         tree = (key < tree->key ? tree->left : tree->right);
     }
 
-    return  NULL;
+    return NULL;
 }
 
 AvlNode *AvlNode::avlFirst(AvlNode *tree)
@@ -149,9 +159,7 @@ AvlNode *AvlNode::avlInsertKey(AvlNode *tree, AvlKey key, AvlValue value)
 {
     if (!tree)
     {
-        tree = new AvlNode();
-        tree->key = key;
-        tree->value = value;
+        tree = new AvlNode(key, value);
         tree->height = 1;
         tree->left = tree->right = NULL;
         return tree;
@@ -174,9 +182,7 @@ AvlNode *AvlNode::avlInsertKey(AvlNode *tree, AvlKey key, AvlValue value)
 
 AvlNode *AvlNode::mkAvlNode(AvlNode *left, AvlKey key, AvlValue value, AvlNode *right)
 {
-    AvlNode *node = new AvlNode();
-    node->key = key;
-    node->left = left;
+    AvlNode *node = new AvlNode(key, value);
     node->right = right;
     node->height = max(avlNodeHeight(node->left), avlNodeHeight(node->right)) + 1;
     return node;
