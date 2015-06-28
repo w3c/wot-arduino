@@ -1,20 +1,40 @@
 /* AvlTrees - a variant on balanced binary trees */
 
-#include <iostream>  // for use of std::memset in constructor
-
 #include "AvlNode.h"
 
 #ifndef NULL
-#define NULL (void *)0
+#define NULL 0
 #endif
 
 #define MAX(x, y) (((x) > (y))?(x):(y))
 
-AvlNode::AvlNode(AvlKey key, AvlValue value)
+// initialise memory pool for allocating nodes
+AvlNode *AvlNode::pool = NULL;
+unsigned int AvlNode::length = 0;
+unsigned int AvlNode::size = 0;
+
+void AvlNode::initialise_pool(AvlNode *buffer, unsigned int size)
 {
-    std::memset(this, sizeof(AvlNode), 0);
-    this->key = key;
-    this->value = value;
+  pool = buffer;  // memory for size nodes
+  length = size;  // number of possible nodes
+  size = 0;  // index for allocation next node
+}
+
+// allocate node from fixed memory pool
+AvlNode * AvlNode::newNode(AvlKey key, AvlValue value)
+{
+    AvlNode * node = NULL;
+    
+    if (pool && size < length)
+    {
+        node = pool + size++;
+        node->key = key;
+        node->value = value;
+        node->height = 1;
+        node->left = node->right = NULL;
+    }
+    
+    return node;
 }
 
 AvlNode *AvlNode::avlFindKey(AvlNode *tree, AvlKey key)
@@ -159,9 +179,9 @@ AvlNode *AvlNode::avlInsertKey(AvlNode *tree, AvlKey key, AvlValue value)
 {
     if (!tree)
     {
-        tree = new AvlNode(key, value);
-        tree->height = 1;
-        tree->left = tree->right = NULL;
+        //tree = new AvlNode(key, value);
+        
+        tree = newNode(key, value);
         return tree;
     }
 
@@ -182,7 +202,9 @@ AvlNode *AvlNode::avlInsertKey(AvlNode *tree, AvlKey key, AvlValue value)
 
 AvlNode *AvlNode::mkAvlNode(AvlNode *left, AvlKey key, AvlValue value, AvlNode *right)
 {
-    AvlNode *node = new AvlNode(key, value);
+    //AvlNode *node = new AvlNode(key, value);
+    
+    AvlNode *node = newNode(key, value);
     node->right = right;
     node->height = max(avlNodeHeight(node->left), avlNodeHeight(node->right)) + 1;
     return node;

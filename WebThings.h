@@ -11,9 +11,10 @@ typedef void (*ThingHandler)(Thing *thing);
 typedef void (*ErrorHandler)(string error);
 typedef void (*EventHandler)(string event, Thing *thing, Any data);
 
-#define null 0
-#define false 0
-#define true  (!false)
+// size of the various memory pools
+
+#define AVL_NODE_POOL_SIZE 80
+#define JSON_NODE_POOL_SIZE 30
 
 // abstract class with methods common to Thing and Proxy
 class CoreThing
@@ -54,10 +55,7 @@ class Proxy : public CoreThing
 class WebThings
 {
     public:
+        WebThings();
         Thing *thing(string name, string model);
         void register_proxy(string uri, ThingHandler succeed, ErrorHandler fail);
-        
-    private:
-        // memory pools for JSON, Strings, AVLTrees
-        // to be added later
 };
