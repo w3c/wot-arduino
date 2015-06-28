@@ -1,6 +1,6 @@
 # Web of Things Framework for Arduino
 
-This will be an experimental implementation of the Web of Things Framework written in the C programming language for the Arduino. This project is a sister of the [NodeJS server for the Web of Things](https://github.com/w3c/web-of-things-framework).
+This will be an experimental implementation of the Web of Things Framework written in the C++ programming language for the Arduino. This project is a sister of the [NodeJS server for the Web of Things](https://github.com/w3c/web-of-things-framework).
 
 A hundred billion IoT devices are expected to be deployed over the next ten years. There are many IoT platforms, and an increasing number of IoT technologies. However, the IoT products are currently beset by silos and a lack of interoperability, which blocks the benefits of the network effect from taking hold.  At W3C, we are exploring the potential for bridging IoT platforms and devices through the World Wide Web via a new class of Web servers that are connected through a common framework, and available in a variety of scales from microcontrollers, to smart phones and home/office hubs, and cloud-based server farms.
 
@@ -8,9 +8,11 @@ This framework involves virtual objects ("things") as proxies for physical and a
 
 ## Technical Details
 
-The Arduino boards like the Uno are very limited when it comes to RAM and Flash memory. There are a range of possibilities for IP connectivity. The Arduino Ethernet Shield is quite resource intensive. The ENC28J60 board provides an alternative for Wired Ethernet. For wireless, the ESP8266 can be used for a low cost WiFi connection. If you don't need IP connectivity, the NRF24L01+ can be used for point to point or mesh networks. Other possibilities include Bluetooth and ZigBee.
+The Arduino boards like the Uno are extremely limited when it comes to RAM and Flash memory. There are a range of possibilities for IP connectivity. The Arduino Ethernet Shield is quite resource intensive. The ENC28J60 board provides an alternative for Wired Ethernet. For wireless, the ESP8266 can be used for a low cost WiFi connection. If you don't need IP connectivity, the NRF24L01+ can be used for point to point or mesh networks. Other possibilities include Bluetooth and ZigBee.
 
 A very constrained web of things server can be used with a single sensor or actuator. Assuming IP connectivity, CoAP and MQTT are good choices for protocols.  This project will allow you to write drivers for simple sensors and actuators, without needing to deal with the details of the protocols. Developers will be able to script the sensors and actuators on a more powerful server where the Web of Things Framework provide the glue between the proxy object and the object it acts on behalf of.
+
+Every attempt is being made to reduce the memory footprint. If you have suggestions for further improvments, please let us know!
 
 
 ## Prerequisites
