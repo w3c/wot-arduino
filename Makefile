@@ -17,6 +17,7 @@ clean:
 	$(RM) $(OBJECTS) test
 
 WebThings.o: WebThings.h JSON.h AvlNode.h
-JSON.o : JSON.h AvlNode.h
+JSON.o: JSON.h AvlNode.h HashTable.h
+HashTable.o: HashTable.h
 AvlNode.o: AvlNode.h
 

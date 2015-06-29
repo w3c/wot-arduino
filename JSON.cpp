@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "JSON.h"
+#include "HashTable.h"
 
 // initialise memory pool for allocating nodes
 JSON *JSON::pool = NULL;
