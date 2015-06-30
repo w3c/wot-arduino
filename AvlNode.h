@@ -1,8 +1,8 @@
 /* AvlTrees - a variant on balanced binary trees */
 
-#include <string>
+#include "core.h"
 
-typedef std::string AvlKey;  // e.g. memory address of object
+typedef String AvlKey;  // e.g. memory address of object
 typedef void *AvlValue;
 
 class AvlNode

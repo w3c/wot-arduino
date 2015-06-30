@@ -1,6 +1,7 @@
 /* Minimal JSON support for Arduino */
 
 #include <iostream>
+#include <string.h>
 
 #include "JSON.h"
 #include "HashTable.h"
@@ -15,7 +16,7 @@ void JSON::initialise_pool(JSON *buffer, unsigned int size)
     pool = buffer;  // memory for size nodes
     length = size;  // number of possible nodes
     size = 0;  // index for allocation next node
-    memset(buffer, size * sizeof(JSON), 0);
+    std::memset(buffer, size * sizeof(JSON), 0);
 }
 
 // allocate node from fixed memory pool
@@ -26,7 +27,7 @@ JSON * JSON::newNode()
     if (pool && size < length)
     {
         node = pool + size++;
-        node->tag = Null;
+        node->tag = Null_t;
         node->variant.number = 0.0;
     }
     
@@ -39,7 +40,7 @@ JSON * JSON::newNumber(float x)
     
     if (node)
     {
-        node->tag = Number;
+        node->tag = Number_t;
         node->variant.number = x;
     }
     
@@ -52,7 +53,7 @@ JSON * JSON::newBoolean(bool value)
     
     if (node)
     {
-        node->tag = Boolean;
+        node->tag = Boolean_t;
         node->variant.truth = value;
     }
     
@@ -65,21 +66,21 @@ JSON * JSON::newNull()
     
     if (node)
     {
-        node->tag = Object;
+        node->tag = Object_t;
         node->variant.object = null;
     }
     
     return node;
 }
 
-JSON * JSON::newString(string& str)
+JSON * JSON::newString(String str)
 {
     JSON *node = JSON::newNode();
     
     if (node)
     {
-        node->tag = String;
-        node->variant.str = &str;
+        node->tag = String_t;
+        node->variant.str = str;
     }
     
     return node;
@@ -92,7 +93,7 @@ JSON * JSON::newObject()
     
     if (node)
     {
-        node->tag = Object;
+        node->tag = Object_t;
         node->variant.object = null;
     }
     
@@ -113,27 +114,27 @@ string JSON::stringify(JSON& obj)
     return "hello world";
 }
 
-JSON * JSON::parse(string src)
+JSON * JSON::parse(String src)
 {
     // *** Implement me ***
     return (JSON *)0;
 }
 
-void JSON::to_string(string &str)
+void JSON::to_string(String str)
 {
     // not sure what to do given issues with dynamic strings
     // guess that we need a static char *buffer to write to 
 }
 
-void JSON::insert(string &name, JSON *value)
+void JSON::insert(String name, JSON *value)
 {
-    if (this->tag == String)
+    if (this->tag == String_t)
         this->variant.object = AvlNode::avlInsertKey(this->variant.object, name, value);
 }
 
-JSON * JSON::retrieve(string& name)
+JSON * JSON::retrieve(String name)
 {
-    if (this->tag == Object)
+    if (this->tag == Object_t)
         return (JSON *)AvlNode::avlFindKey(this->variant.object, (AvlKey)name);
         
     return null;

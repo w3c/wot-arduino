@@ -3,6 +3,7 @@
 #include <iostream>
 using namespace std;
 
+#include "core.h"
 #include "WebThings.h"
 
 // static allocation of memory pools

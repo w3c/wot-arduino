@@ -1,7 +1,7 @@
 CXX = g++
-CPPFLAGS =        # put pre-processor settings (-I, -D, etc) here
-CXXFLAGS = -Wall  # put compiler settings here
-LDFLAGS =         # put linker settings here
+CPPFLAGS =        # pre-processor settings (-I, -D, etc)
+CXXFLAGS = -Wall -Os -fdata-sections -ffunction-sections  # compiler settings
+LDFLAGS = #-Wl,--gc-sections  # linker settings
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(SOURCES:.cpp=.o)
 INCLUDES=$(wildcard *.h)
@@ -16,8 +16,8 @@ test: $(OBJECTS)
 clean:
 	$(RM) $(OBJECTS) test
 
-WebThings.o: WebThings.h JSON.h AvlNode.h
-JSON.o: JSON.h AvlNode.h HashTable.h
-HashTable.o: HashTable.h
-AvlNode.o: AvlNode.h
-
+WebThings.o: core.h WebThings.h JSON.h AvlNode.h
+JSON.o: core.h JSON.h AvlNode.h HashTable.h
+HashTable.o: core.h HashTable.h
+AvlNode.o: core.h AvlNode.h
+MessageCode.o: core.h

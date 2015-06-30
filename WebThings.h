@@ -1,6 +1,5 @@
 /* Web of Things Framework for Arduino IDE */
 
-#include <string>
 #include <stdarg.h>
 #include "JSON.h"
 

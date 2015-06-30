@@ -1,17 +1,15 @@
 /* simple fixed size hashtable with no chaining for use on constrained devices */
 
 #include <string>
-using namespace std;  // for memset
-
 #include "HashTable.h"
 
 HashTable::HashTable()
 {
     this->entries = 0;
-    memset(&table[0], sizeof(HashEntry) * HASH_TABLE_SIZE, 0);
+    std::memset(&table[0], sizeof(HashEntry) * HASH_TABLE_SIZE, 0);
 }
 
-float HashTable::usage()
+float HashTable::used()
 {
     // return percentage table is filled
     return 100.0 * entries / (1.0 * HASH_TABLE_SIZE);

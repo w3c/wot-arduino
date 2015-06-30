@@ -5,12 +5,13 @@
 using namespace std;
 
 #include "WebThings.h"
+#include "MessageCoder.h"
 
 int main ()
 {
     WebThings wot;
     
-    cout << "started server";
+    cout << "started server\n\n";
     
     string agent_model =
         "{"
@@ -56,7 +57,11 @@ int main ()
     Thing *door = wot.thing("door12", door_model);
     Thing *light = wot.thing("light12", light_model);
     
-    cout << door_model;
+    //cout << door_model;
+    
+    MessageCoder coder;
+    
+    coder.test();
     
     return 0;
 }

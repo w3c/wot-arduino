@@ -2,14 +2,10 @@
 
 #include "AvlNode.h"
 
-#ifndef NULL
-#define NULL 0
-#endif
-
 #define MAX(x, y) (((x) > (y))?(x):(y))
 
 // initialise memory pool for allocating nodes
-AvlNode *AvlNode::pool = NULL;
+AvlNode *AvlNode::pool = 0;
 unsigned int AvlNode::length = 0;
 unsigned int AvlNode::size = 0;
 
@@ -23,7 +19,7 @@ void AvlNode::initialise_pool(AvlNode *buffer, unsigned int size)
 // allocate node from fixed memory pool
 AvlNode * AvlNode::newNode(AvlKey key, AvlValue value)
 {
-    AvlNode * node = NULL;
+    AvlNode * node = 0;
     
     if (pool && size < length)
     {
@@ -31,7 +27,7 @@ AvlNode * AvlNode::newNode(AvlKey key, AvlValue value)
         node->key = key;
         node->value = value;
         node->height = 1;
-        node->left = node->right = NULL;
+        node->left = node->right = 0;
     }
     
     return node;
@@ -47,7 +43,7 @@ AvlNode *AvlNode::avlFindKey(AvlNode *tree, AvlKey key)
         tree = (key < tree->key ? tree->left : tree->right);
     }
 
-    return NULL;
+    return 0;
 }
 
 AvlNode *AvlNode::avlFirst(AvlNode *tree)
