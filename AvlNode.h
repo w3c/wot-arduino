@@ -1,4 +1,7 @@
-/* AvlTrees - a variant on balanced binary trees */
+// AvlTrees - a variant on balanced binary trees
+
+#ifndef _WOTF_AVLNODE
+#define _WOTF_AVLNODE
 
 #include "core.h"
 
@@ -39,3 +42,5 @@ class AvlNode
         static AvlNode * avlBalance(AvlNode *tree);
         static AvlNode * mkAvlNode(AvlNode *left, AvlKey key, AvlValue value, AvlNode *right);
 };
+
+#endif

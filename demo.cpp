@@ -5,6 +5,7 @@
 using namespace std;
 
 #include "WebThings.h"
+#include "JSON.h"
 #include "MessageCoder.h"
 
 int main ()
@@ -13,7 +14,7 @@ int main ()
     
     cout << "started server\n\n";
     
-    string agent_model =
+    const char *agent_model =
         "{"
             "\"@properties\": {"
                 "\"door\": {"
@@ -27,7 +28,7 @@ int main ()
             "},"
         "}";
 
-    string door_model =
+    const char *door_model =
         "{"
             "\"@events\": {"
                 "\"bell\": null,"
@@ -43,7 +44,7 @@ int main ()
             "}"
         "}";
     
-    string light_model =
+    const char *light_model =
         "{"
             "\"@properties\": {"
                 "\"on\": {"
@@ -59,9 +60,12 @@ int main ()
     
     //cout << door_model;
     
-    MessageCoder coder;
+    //MessageCoder coder;
+    //coder.test();
     
-    coder.test();
+    const char *test = "true";
+    
+    JSON::parse(test, strlen(test));
     
     return 0;
 }

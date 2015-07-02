@@ -1,3 +1,6 @@
+#ifndef _WOTF_MESSAGECODER
+#define _WOTF_MESSAGECODER
+
 #include <stdint.h>
 #include "core.h"
 
@@ -80,3 +83,4 @@ class MessageCoder
         static void encode_array_end(MessageBuffer *buffer);
 };
 
+#endif

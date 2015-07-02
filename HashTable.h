@@ -1,3 +1,7 @@
+// hash table for symbol dictionary
+
+#ifndef _WOTF_HASHTABLE
+#define _WOTF_HASHTABLE
 
 #include "core.h"
 
@@ -30,3 +34,4 @@ class HashTable
         int strcmp(unsigned char *s1, unsigned int len1, unsigned char *s2, unsigned int len2);
 };
 
+#endif

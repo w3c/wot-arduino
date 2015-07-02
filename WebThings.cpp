@@ -1,9 +1,5 @@
 /* Web of Things Framework for Arduino */
 
-#include <iostream>
-using namespace std;
-
-#include "core.h"
 #include "WebThings.h"
 
 // static allocation of memory pools
@@ -17,55 +13,55 @@ WebThings::WebThings()
     JSON::initialise_pool(&(jsonNodePool[0]), JSON_NODE_POOL_SIZE);
 }
 
-Thing * WebThings::thing(string name, string model)
+Thing * WebThings::thing(const char *name, const char *model)
 {
     return new Thing();
 }
 
-void WebThings::register_proxy(string uri, ThingHandler succeed, ErrorHandler fail)
+void WebThings::register_proxy(const char *uri, ThingHandler succeed, ErrorHandler fail)
 {
     Thing *proxy = new Thing();
     succeed(proxy);
 }
 
-void Thing::register_observer(string name, EventHandler handler)
+void Thing::register_observer(const char *name, EventHandler handler)
 {
 }
 
-void Thing::unregister_observer(string name, EventHandler handler)
+void Thing::unregister_observer(const char *name, EventHandler handler)
 {
 }
 
-void Thing::set_property(string name, Any value)
+void Thing::set_property(const char *name, Any value)
 {
 }
 
-Any Thing::get_property(string name)
-{
-    return null;
-}
-
-void Thing::invoke(string name, ...)
-{
-}
-
-void Proxy::register_observer(string name, EventHandler handler)
-{
-}
-
-void Proxy::unregister_observer(string name, EventHandler handler)
-{
-}
-
-void Proxy::set_property(string name, Any value)
-{
-}
-
-Any Proxy::get_property(string name)
+Any Thing::get_property(const char *name)
 {
     return null;
 }
 
-void Proxy::invoke(string name, ...)
+void Thing::invoke(const char *name, ...)
+{
+}
+
+void Proxy::register_observer(const char *name, EventHandler handler)
+{
+}
+
+void Proxy::unregister_observer(const char *name, EventHandler handler)
+{
+}
+
+void Proxy::set_property(const char *name, Any value)
+{
+}
+
+Any Proxy::get_property(const char *name)
+{
+    return null;
+}
+
+void Proxy::invoke(const char *name, ...)
 {
 }
