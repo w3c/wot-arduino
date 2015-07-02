@@ -10,13 +10,19 @@
 #define WOT_STRING 4
 #define WOT_UNSIGNED_INT_8 5
 #define WOT_UNSIGNED_INT_16 6
-#define WOT_SIGNED_INT_8 7
-#define WOT_SIGNED_INT_16 8
-#define WOT_FLOAT_32 9
+#define WOT_UNSIGNED_INT_32 7
+#define WOT_SIGNED_INT_8 8
+#define WOT_SIGNED_INT_16 9
+#define WOT_SIGNED_INT_32 10
+#define WOT_FLOAT_32 11
+#define WOT_FLOAT_64 12
+#define WOT_VALUE_TRUE 13
+#define WOT_VALUE_FALSE 14
+#define WOT_VALUE_NULL 15
 
-// tags in range 10-22 are reserved for future use
+// tags in range 16-22 are reserved for future use
 
-#define WOT_RESERVED_START 10
+#define WOT_RESERVED_START 16
 #define WOT_RESRVED_END 22
 
 // tags in range 23-54 are integers (0-31)
@@ -41,11 +47,13 @@ class MessageBuffer
         unsigned int index;
         unsigned int size;
         int big_endian;
+        bool overflow;
         
     public:
         bool is_big_endian();
         void set_buffer(unsigned char *buf, unsigned len);
         unsigned char * get_pointer();
+        bool overflowed();
         unsigned int get_size();
         unsigned int get_byte();
         unsigned int view_byte();
@@ -57,13 +65,21 @@ class MessageCoder
     public:
         static void test();
           
-        static void decode(MessageBuffer *buffer);
-        static void decode_object(MessageBuffer *buffer);
-        static void decode_array(MessageBuffer *buffer);
+        static bool decode(MessageBuffer *buffer);
+        static bool decode_object(MessageBuffer *buffer);
+        static bool decode_array(MessageBuffer *buffer);
 
-        static void encode_unsigned(MessageBuffer *buffer, unsigned int n);
-        static void encode_signed(MessageBuffer *buffer, int n);
+        static void encode_unsigned8(MessageBuffer *buffer, unsigned char n);
+        static void encode_unsigned16(MessageBuffer *buffer, uint16_t n);
+        static void encode_unsigned32(MessageBuffer *buffer, uint32_t n);
+        static void encode_signed8(MessageBuffer *buffer, char n);
+        static void encode_signed16(MessageBuffer *buffer, int16_t n);
+        static void encode_signed32(MessageBuffer *buffer, int32_t n);
         static void encode_float(MessageBuffer *buffer, float x);
+        static void encode_double(MessageBuffer *buffer, double x);
+        static void encode_null(MessageBuffer *buffer);
+        static void encode_true(MessageBuffer *buffer);
+        static void encode_false(MessageBuffer *buffer);
         static void encode_symbol(MessageBuffer *buffer, unsigned int sym);
         static void encode_string(MessageBuffer *buffer, String str);
         static void encode_object_start(MessageBuffer *buffer);

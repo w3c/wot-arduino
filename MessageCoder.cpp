@@ -39,6 +39,7 @@ void MessageBuffer::set_buffer(unsigned char *buf, unsigned len)
     buffer = buf;
     length = len;
     size = index = 0;
+    overflow = false;
     
     num.u = 1;
     big_endian = (num.bytes[0] == 1 ? true : false);
@@ -47,6 +48,11 @@ void MessageBuffer::set_buffer(unsigned char *buf, unsigned len)
 bool MessageBuffer::is_big_endian()
 {
     return big_endian;
+}
+
+bool MessageBuffer::overflowed()
+{
+    return overflow;
 }
 
 unsigned char * MessageBuffer::get_pointer()
@@ -77,17 +83,17 @@ unsigned int MessageBuffer::view_byte()
 
 bool MessageBuffer::put_byte(unsigned char c)
 {
-    if (index < length)
+    if (size < length)
     {
         buffer[size++] = c & 255;
         return true;
     }
-    
-    cout << "attempt to write beyond end of buffer";
+
+    overflow = true;    
     return false;
 }
 
-void MessageCoder::decode_object(MessageBuffer *buffer)
+bool MessageCoder::decode_object(MessageBuffer *buffer)
 {
     unsigned int c;
     String s;
@@ -102,11 +108,20 @@ void MessageCoder::decode_object(MessageBuffer *buffer)
         if (c ==  WOT_STRING)
         {
             s = buffer->get_pointer();
-            while ((c = buffer->get_byte()) && c < 256); 
-            cout << "string \""; cout << c; cout << "\" :\n";
+            while ((c = buffer->get_byte()) && c < 256);
+            
+            if (c)
+            {
+                cout << "unterminated string\n";
+                return false;
+            }
+            else 
+                cout << "string \""; cout << s; cout << "\" :\n";
         
             // get value
-            decode(buffer);
+            
+            if (!decode(buffer))
+                return false;
         }
         else if (WOT_SYM_BASE <= c && c < 256)
         {
@@ -114,7 +129,9 @@ void MessageCoder::decode_object(MessageBuffer *buffer)
             cout << "symbol "; cout << c; cout << " :\n";
         
             // get value
-            decode(buffer);
+            
+            if (!decode(buffer))
+                return false;
         }
         else if (c == WOT_END_OBJECT)
         {
@@ -123,14 +140,15 @@ void MessageCoder::decode_object(MessageBuffer *buffer)
         else
         {
             cout << "didn't find string or symbol for object property name";
-            break;
+            return false;
         }
     }
     
     cout << "end object\n";
+    return true;
 }
 
-void MessageCoder::decode_array(MessageBuffer *buffer)
+bool MessageCoder::decode_array(MessageBuffer *buffer)
 {
     unsigned int c;
     
@@ -146,115 +164,210 @@ void MessageCoder::decode_array(MessageBuffer *buffer)
         if (c == WOT_END_OBJECT)
         {
             cout << "found unexpected end of object\n";
-            break;
+            return false;
         }
             
-        decode(buffer);
+        if (!decode(buffer))
+            return false;
     }
     
     cout << "end array\n";
+    return true;
 }
 
-void MessageCoder::decode(MessageBuffer *buffer)
+bool MessageCoder::decode(MessageBuffer *buffer)
 {
-    unsigned int u, c;
-    int i;
-    float x;
-    String s;
+    unsigned int c = buffer->get_byte();
     
-    union unum {
-        unsigned char bytes4[4];
-        unsigned char bytes2[4];
-        uint16_t u;
-        int16_t i;
-        float x;
-    } num;
+    switch (c)
+    {
+        case WOT_START_OBJECT:
+            return decode_object(buffer);
             
-    c = buffer->get_byte();
+        case WOT_START_ARRAY:
+            return decode_array(buffer);
     
-    if (c == WOT_START_OBJECT)
-    {
-        decode_object(buffer);
-    }
-    else if (c == WOT_START_ARRAY)
-    {
-        decode_array(buffer);
-    }
-    else if (c == WOT_STRING)
-    {
-        s = buffer->get_pointer();
-        while ((c = buffer->get_byte()) && c < 256); 
-        cout << "string \"" << s << "\"\n";
-    }
-    else if (c == WOT_UNSIGNED_INT_8)
-    {
-        c = buffer->get_byte();
-        cout << "unsigned integer "; cout << c; cout << "\n";
-    }
-    else if (c == WOT_UNSIGNED_INT_16)
-    {
-        unsigned char c1 = buffer->get_byte();
-        unsigned char c2 = buffer->get_byte();
-
-        u = (c1 << 8) | c2;
-        cout << "unsigned integer "; cout << u; cout << "\n";
-    }
-    else if (c == WOT_SIGNED_INT_8)
-    {
-        u = (c << 8) | buffer->get_byte();
-        i = (uint16_t)c;
-        cout << "signed integer "; cout << i; cout << "\n";
-    }
-    else if (c == WOT_SIGNED_INT_16)
-    {
-        unsigned char c1 = buffer->get_byte();
-        unsigned char c2 = buffer->get_byte();
-        u = (c1 << 8) | c2;
-        i = (int16_t)u;
-        cout << "signed integer "; cout << i; cout << "\n";
-    }
-    else if (c == WOT_FLOAT_32)
-    {
-        if (buffer->is_big_endian())
-        { 
-            num.bytes4[3] = buffer->get_byte();
-            num.bytes4[2] = buffer->get_byte();
-            num.bytes4[1] = buffer->get_byte();
-            num.bytes4[0] = buffer->get_byte();
+        case WOT_STRING:
+        {
+            String s = buffer->get_pointer();
+            while ((c = buffer->get_byte()) && c < 256); 
+            
+            if (c)
+            {
+                cout << "unterminated string\n";
+                return false;
+            }
+            else
+                cout << "string \"" << s << "\"\n";
+            break;
         }
-        else
-        { 
-            num.bytes4[0] = buffer->get_byte();
-            num.bytes4[1] = buffer->get_byte();
-            num.bytes4[2] = buffer->get_byte();
-            num.bytes4[3] = buffer->get_byte();
+
+        case WOT_UNSIGNED_INT_8:
+            c = buffer->get_byte();
+            cout << "unsigned 8 bit integer " << c << "\n";
+            break;
+    
+        case WOT_SIGNED_INT_8:
+        {
+            c = buffer->get_byte();
+            uint16_t i = (uint16_t)c;
+            cout << "signed 8 bit integer " << i << "\n";
+            break;
         }
         
-        x = num.x;
-        cout << "float "; cout << x; cout << "\n";
-    }
-    else if (WOT_RESERVED_START <= c && c <= WOT_RESRVED_END)
-    {
-        cout << "illegal use of reserved tag";
-    }
-    else if (WOT_NUM_BASE <= c && c < WOT_SYM_BASE)
-    {
-        u = c - WOT_NUM_BASE;
-        cout << "unsigned integer "; cout << u; cout << "\n";
+        case WOT_UNSIGNED_INT_16:
+        case WOT_SIGNED_INT_16:
+        {
+            union unum
+            {
+                unsigned char bytes2[2];
+                uint16_t u;
+                int16_t i;
+            } num;
 
+            if (buffer->is_big_endian())
+            { 
+                num.bytes2[1] = buffer->get_byte();
+                num.bytes2[0] = buffer->get_byte();
+            }
+            else
+            {
+                num.bytes2[0] = buffer->get_byte();
+                num.bytes2[1] = buffer->get_byte();
+            }
+            
+            if (c == WOT_UNSIGNED_INT_16)
+                cout << "unsigned 16 bit integer " << num.u << "\n";
+            else
+                cout << "signed 16 bit integer " << num.i << "\n";
+            break;
+        }
+    
+        case WOT_UNSIGNED_INT_32:
+        case WOT_SIGNED_INT_32:
+        case WOT_FLOAT_32:
+        {
+            union unum
+            {
+                unsigned char bytes4[4];
+                uint32_t u;
+                int32_t i;
+                float x;
+            } num;
+
+            if (buffer->is_big_endian())
+            { 
+                num.bytes4[3] = buffer->get_byte();
+                num.bytes4[2] = buffer->get_byte();
+                num.bytes4[1] = buffer->get_byte();
+                num.bytes4[0] = buffer->get_byte();
+            }
+            else
+            {
+                num.bytes4[0] = buffer->get_byte();
+                num.bytes4[1] = buffer->get_byte();
+                num.bytes4[2] = buffer->get_byte();
+                num.bytes4[3] = buffer->get_byte();
+            }
+
+            if (c == WOT_UNSIGNED_INT_32)
+                cout << "unsigned 32 bit integer " << num.u << "\n";
+            else if (c == WOT_SIGNED_INT_32)
+                cout << "signed 32 bit integer " << num.i << "\n";
+            else
+            {
+                cout.precision(7);
+                cout << "float " << num.x << "\n";
+            }
+            
+            break;
+        }
+        
+        case WOT_FLOAT_64:
+        {
+            union unum
+            {
+                unsigned char bytes8[8];
+                double xx;
+            } num;
+
+            if (buffer->is_big_endian())
+            { 
+                num.bytes8[7] = buffer->get_byte();
+                num.bytes8[6] = buffer->get_byte();
+                num.bytes8[5] = buffer->get_byte();
+                num.bytes8[4] = buffer->get_byte();
+                num.bytes8[3] = buffer->get_byte();
+                num.bytes8[2] = buffer->get_byte();
+                num.bytes8[1] = buffer->get_byte();
+                num.bytes8[0] = buffer->get_byte();
+            }
+            else
+            { 
+                num.bytes8[0] = buffer->get_byte();
+                num.bytes8[1] = buffer->get_byte();
+                num.bytes8[2] = buffer->get_byte();
+                num.bytes8[3] = buffer->get_byte();
+                num.bytes8[4] = buffer->get_byte();
+                num.bytes8[5] = buffer->get_byte();
+                num.bytes8[6] = buffer->get_byte();
+                num.bytes8[7] = buffer->get_byte();
+            }
+        
+            cout.precision(15);
+            cout << "double " << num.xx << "\n";
+            break;
+        }
+        
+        default:
+        {
+            if (WOT_RESERVED_START <= c && c <= WOT_RESRVED_END)
+            {
+                cout << "illegal use of reserved tag";
+                return false;
+            }
+            else if (WOT_NUM_BASE <= c && c < WOT_SYM_BASE)
+            {
+                uint16_t u = c - WOT_NUM_BASE;
+                cout << "unsigned 4 bit integer " << u << "\n";
+
+            }
+            else if (WOT_SYM_BASE <= c && c < 256)
+            {
+                uint16_t u = c - WOT_SYM_BASE;
+        
+                if (u == WOT_SYM_NULL)
+                    cout << "symbol null\n";
+                else if (u == WOT_SYM_TRUE)
+                    cout << "symbol true\n";
+                else if (u == WOT_SYM_FALSE)
+                    cout << "symbol false\n";
+                else
+                    cout << "symbol " << u << "\n";
+            }
+            else // unexpected end of buffer
+            {
+                cout << "unexpectedly reached end of buffer\n";
+                return false;
+            }
+        }
     }
-    else if (WOT_SYM_BASE <= c && c < 256)
+    
+    return true;
+}
+
+void MessageCoder::encode_unsigned8(MessageBuffer *buffer, unsigned char n)
+{
+    if (n < (WOT_SYM_BASE - WOT_NUM_BASE))
+        buffer->put_byte(n + WOT_NUM_BASE);
+    else
     {
-        u = c - WOT_SYM_BASE;
-        cout << "symbol "; cout << u; cout << "\n";
-    }
-    else // unexpected end of buffer
-    {
-        cout << "unexpectedly reached end of buffer\n";
+        buffer->put_byte(WOT_UNSIGNED_INT_8);
+        buffer->put_byte(n);
     }
 }
 
-void MessageCoder::encode_unsigned(MessageBuffer *buffer, unsigned int n)
+void MessageCoder::encode_unsigned16(MessageBuffer *buffer, uint16_t n)
 {
     if (n < (WOT_SYM_BASE - WOT_NUM_BASE))
         buffer->put_byte(n + WOT_NUM_BASE);
@@ -263,7 +376,7 @@ void MessageCoder::encode_unsigned(MessageBuffer *buffer, unsigned int n)
         buffer->put_byte(WOT_UNSIGNED_INT_8);
         buffer->put_byte(n);
     }
-    else  // for now assume fits in 16 bits
+    else
     {
         uint16_t u = (uint16_t) n;
         
@@ -273,7 +386,47 @@ void MessageCoder::encode_unsigned(MessageBuffer *buffer, unsigned int n)
     }
 }
 
-void MessageCoder::encode_signed(MessageBuffer *buffer, int n)
+void MessageCoder::encode_unsigned32(MessageBuffer *buffer, uint32_t n)
+{
+    if (n < (WOT_SYM_BASE - WOT_NUM_BASE))
+        buffer->put_byte(n + WOT_NUM_BASE);
+    else if (n < 256)
+    {
+        buffer->put_byte(WOT_UNSIGNED_INT_8);
+        buffer->put_byte(n);
+    }
+    else if (n < 65536)
+    {
+        uint16_t u = (uint16_t) n;
+        
+        buffer->put_byte(WOT_UNSIGNED_INT_16);
+        buffer->put_byte(u >> 8);
+        buffer->put_byte(u & 255);
+    }
+    else // assume 32 bit unsigned int
+    {
+        uint32_t u = (uint32_t) n;
+        
+        buffer->put_byte(WOT_UNSIGNED_INT_32);
+        buffer->put_byte((u >> 24) & 255);
+        buffer->put_byte((u >> 1) & 255);
+        buffer->put_byte((u >> 8) & 255);
+        buffer->put_byte(u & 255);
+    }
+}
+
+void MessageCoder::encode_signed8(MessageBuffer *buffer, char n)
+{
+    if (n < (WOT_SYM_BASE - WOT_NUM_BASE))
+        buffer->put_byte((unsigned char)n + WOT_NUM_BASE);
+    else
+    {
+        buffer->put_byte(WOT_SIGNED_INT_8);
+        buffer->put_byte((unsigned char)n);
+    }
+}
+
+void MessageCoder::encode_signed16(MessageBuffer *buffer, int16_t n)
 {
     if (0 <= n && n < (WOT_SYM_BASE - WOT_NUM_BASE))
         buffer->put_byte(n + WOT_NUM_BASE);
@@ -282,11 +435,39 @@ void MessageCoder::encode_signed(MessageBuffer *buffer, int n)
         buffer->put_byte(WOT_SIGNED_INT_8);
         buffer->put_byte((unsigned char)n);
     }
-    else  // for now assume fits in 16 bits
+    else
     {
-        uint16_t u = (uint16_t)n;
+        uint16_t u = (uint16_t) n;
+        
         buffer->put_byte(WOT_SIGNED_INT_16);
         buffer->put_byte(u >> 8);
+        buffer->put_byte(u & 255);
+    }
+}
+
+void MessageCoder::encode_signed32(MessageBuffer *buffer, int32_t n)
+{
+    if (0 <= n && n < (WOT_SYM_BASE - WOT_NUM_BASE))
+        buffer->put_byte(n + WOT_NUM_BASE);
+    else if (-128 < n && n <= 127)
+    {
+        buffer->put_byte(WOT_SIGNED_INT_8);
+        buffer->put_byte((unsigned char)n);
+    }
+    else if (n < 32768)
+    {
+        uint16_t u = (uint16_t) n;        
+        buffer->put_byte(WOT_SIGNED_INT_16);
+        buffer->put_byte(u >> 8);
+        buffer->put_byte(u & 255);
+    }
+    else
+    {
+        uint32_t u = (uint32_t) n;        
+        buffer->put_byte(WOT_SIGNED_INT_32);
+        buffer->put_byte((u >> 24) & 255);
+        buffer->put_byte((u >> 1) & 255);
+        buffer->put_byte((u >> 8) & 255);
         buffer->put_byte(u & 255);
     }
 }
@@ -318,6 +499,41 @@ void MessageCoder::encode_float(MessageBuffer *buffer, float x)
     }
 }
 
+void MessageCoder::encode_double(MessageBuffer *buffer, double x)
+{
+    buffer->put_byte(WOT_FLOAT_64);
+    
+    union unum {
+        unsigned char bytes[8];
+            double x;
+        } num;
+        
+        num.x = x;
+
+    if (buffer->is_big_endian())
+    {
+        buffer->put_byte(num.bytes[7]);
+        buffer->put_byte(num.bytes[6]);
+        buffer->put_byte(num.bytes[5]);
+        buffer->put_byte(num.bytes[4]);
+        buffer->put_byte(num.bytes[3]);
+        buffer->put_byte(num.bytes[2]);
+        buffer->put_byte(num.bytes[1]);
+        buffer->put_byte(num.bytes[0]);
+    }
+    else
+    { 
+        buffer->put_byte(num.bytes[0]);
+        buffer->put_byte(num.bytes[1]);
+        buffer->put_byte(num.bytes[2]);
+        buffer->put_byte(num.bytes[3]);
+        buffer->put_byte(num.bytes[4]);
+        buffer->put_byte(num.bytes[5]);
+        buffer->put_byte(num.bytes[6]);
+        buffer->put_byte(num.bytes[7]);
+    }
+}
+
 void MessageCoder::encode_symbol(MessageBuffer *buffer, unsigned int sym)
 {
     if (sym > 200)
@@ -328,6 +544,21 @@ void MessageCoder::encode_symbol(MessageBuffer *buffer, unsigned int sym)
     {
         buffer->put_byte(sym + WOT_SYM_BASE);
     }
+}
+
+void MessageCoder::encode_null(MessageBuffer *buffer)
+{
+    buffer->put_byte(WOT_SYM_NULL + WOT_SYM_BASE);
+}
+
+void MessageCoder::encode_true(MessageBuffer *buffer)
+{
+    buffer->put_byte(WOT_SYM_TRUE + WOT_SYM_BASE);
+}
+
+void MessageCoder::encode_false(MessageBuffer *buffer)
+{
+    buffer->put_byte(WOT_SYM_FALSE + WOT_SYM_BASE);
 }
 
 void MessageCoder::encode_string(MessageBuffer *buffer, String str)
@@ -362,7 +593,7 @@ void MessageCoder::encode_array_end(MessageBuffer *buffer)
     buffer->put_byte(WOT_END_ARRAY);
 }
 
-#define WOT_MESSAGE_LENGTH 128
+#define WOT_MESSAGE_LENGTH 5
 
 void MessageCoder::test()
 {
@@ -370,28 +601,47 @@ void MessageCoder::test()
     MessageCoder coder;
     
     unsigned char buffer[WOT_MESSAGE_LENGTH];
+    const double PI = 3.141592653589793238463;
+    cout << "double pi = " << PI << "\n";
     
+    cout << "int has " << sizeof(int) << " bytes\n";
+    cout << "long has " << sizeof(long) << " bytes\n";
     cout << "float has " << sizeof(float) << " bytes\n";
+    cout << "double has " << sizeof(double) << " bytes\n";
     
     membuf.set_buffer(&buffer[0], WOT_MESSAGE_LENGTH);
+
     coder.encode_string(&membuf, (String)"hello world");
     cout << "used " << membuf.get_size() << " bytes\n";
+    cout << "overflowed: " << (membuf.overflowed() ? "true" : "false") << "\n";
+
     coder.decode(&membuf);
     
     membuf.set_buffer(&buffer[0], WOT_MESSAGE_LENGTH);
+
     coder.encode_array_start(&membuf);
     coder.encode_string(&membuf, (String)"one");
     coder.encode_string(&membuf, (String)"two");
     coder.encode_string(&membuf, (String)"three");
     coder.encode_symbol(&membuf, 79);
-    coder.encode_unsigned(&membuf, 7);
-    coder.encode_unsigned(&membuf, 24);
-    coder.encode_unsigned(&membuf, 200);
-    coder.encode_unsigned(&membuf, 300);
-    coder.encode_signed(&membuf, -320);
-    coder.encode_float(&membuf, 1.414259);
+    coder.encode_null(&membuf);
+    coder.encode_true(&membuf);
+    coder.encode_false(&membuf);
+    coder.encode_unsigned16(&membuf, 7);
+    coder.encode_unsigned16(&membuf, 24);
+    coder.encode_unsigned16(&membuf, 200);
+    coder.encode_unsigned16(&membuf, 300);
+    coder.encode_unsigned32(&membuf, 65536);
+    coder.encode_signed16(&membuf, -320);
+    coder.encode_signed16(&membuf, -32768);
+    coder.encode_signed32(&membuf, 32768);
+    coder.encode_float(&membuf, (float)PI);
+    coder.encode_double(&membuf, PI);
     coder.encode_array_end(&membuf);
+    
     cout << "used " << membuf.get_size() << " bytes\n";
+    cout << "overflowed: " << (membuf.overflowed() ? "true" : "false") << "\n";
+
     coder.decode(&membuf);
     
 }
