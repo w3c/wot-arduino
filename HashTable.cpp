@@ -1,12 +1,11 @@
 /* simple fixed size hashtable with no chaining for use on constrained devices */
 
-#include <string>
 #include "HashTable.h"
 
 HashTable::HashTable()
 {
     this->entries = 0;
-    std::memset(&table[0], sizeof(HashEntry) * HASH_TABLE_SIZE, 0);
+    memset(&table[0], 0, sizeof(HashEntry) * HASH_TABLE_SIZE);    
 }
 
 float HashTable::used()
@@ -15,16 +14,15 @@ float HashTable::used()
     return 100.0 * entries / (1.0 * HASH_TABLE_SIZE);
 }
 
-unsigned int HashTable::hash(String key)
+unsigned int HashTable::hash(unsigned char *key, unsigned int length)
 {
     // Jenkins One-at-a-Time hash
     unsigned char *p = (unsigned char *)key;
     unsigned h = 0;
-    int c;
 
-    while ((c = *p++))
+    while (length--)
     {
-        h += c;
+        h += *p++;
         h += ( h << 10 );
         h ^= ( h >> 6 );
     }
@@ -36,24 +34,37 @@ unsigned int HashTable::hash(String key)
     return h;
 }
 
-int HashTable::strcmp(String s1, String s2)
+int HashTable::strcmp(unsigned char *s1, unsigned int len1, unsigned char *s2, unsigned int len2)
 {
-    while(*s1 && (*s1==*s2))
-        s1++,s2++;
-    return *(const unsigned char*)s1-*(const unsigned char*)s2;
+        
+    if (len1 && len2)
+    {
+        while(len1-- && len2-- && (*s1==*s2))
+        {
+            s1++;
+            s2++;
+        }
+    
+        return *(const unsigned char*)s1-*(const unsigned char*)s2;
+    }
+        
+    if (!(len1 | len2))
+        return 0;
+
+    return (len1 ? 1 : -1);
 }
 
-void * HashTable::insert_key(String key, void *value)
+boolean HashTable::insert_key(unsigned char *key, unsigned int length, unsigned int value)
 {
-    unsigned int i = 0, hashval = hash(key), index = hashval % HASH_TABLE_SIZE;
-    HashEntry *entry;
+    unsigned int i = 0, hashval = hash(key, length), index = hashval % HASH_TABLE_SIZE;
+    HashEntry *entry = 0;
     
-    while (i++ < HASH_TABLE_SIZE &&  (entry = table+index, entry->key))
+    while (i++ < HASH_TABLE_SIZE && (entry = table+index, entry->key))
     {
-        if (!strcmp(entry->key, key))
+        if (!strcmp(entry->key, entry->length, key, length))
         {
             entry->value = value;
-            return entry;
+            return true;
         }
             
         index = (++index % HASH_TABLE_SIZE);
@@ -62,23 +73,24 @@ void * HashTable::insert_key(String key, void *value)
     if (i < HASH_TABLE_SIZE && entry)
     {
         entry->key = key;
+        entry->length = length;
         entry->value = value;
         ++entries;
-        return entry;
+        return true;
     }
     
-    return 0;
+    return false;
 }
 
-void * HashTable::find_key(String key)
+unsigned int HashTable::find_key(unsigned char *key, unsigned int length)
 {
-    unsigned int i = 0, hashval = hash(key), index = hashval % HASH_TABLE_SIZE;
+    unsigned int i = 0, hashval = hash(key, length), index = hashval % HASH_TABLE_SIZE;
     HashEntry *entry;
     
     while (i++ < HASH_TABLE_SIZE &&  (entry = table+index, entry))
     {
-        if (strcmp(entry->key, key))
-            return entry;
+        if (!strcmp(entry->key, entry->length, key, length))
+            return entry->value;
             
         index = (++index % HASH_TABLE_SIZE);
     }

@@ -1,10 +1,6 @@
 /* Minimal JSON support for Arduino */
 
-#include <iostream>
-#include <string.h>
-
 #include "JSON.h"
-#include "HashTable.h"
 
 // initialise memory pool for allocating nodes
 JSON *JSON::pool = NULL;
@@ -16,11 +12,26 @@ void JSON::initialise_pool(JSON *buffer, unsigned int size)
     pool = buffer;  // memory for size nodes
     length = size;  // number of possible nodes
     size = 0;  // index for allocation next node
-    std::memset(buffer, size * sizeof(JSON), 0);
+    memset(buffer, 0, size * sizeof(JSON));
+}
+
+JSON * JSON::parse(unsigned char *src, unsigned int length)
+{
+    JSONLexer lexer;
+    lexer.src = src;
+    lexer.length = length;
+    return parse_private(&lexer);
+}
+
+// build JSON object hierarchy
+JSON * JSON::parse_private(JSONLexer *lexer)
+{
+    // check token to determine what JSON type to construct
+    return null;
 }
 
 // allocate node from fixed memory pool
-JSON * JSON::newNode()
+JSON * JSON::new_node()
 {
     JSON * node = NULL;
     
@@ -34,22 +45,48 @@ JSON * JSON::newNode()
     return node;
 }
 
-JSON * JSON::newNumber(float x)
+JSON * JSON::new_float(float n)
 {
-    JSON *node = JSON::newNode();
+    JSON *node = JSON::new_node();
     
     if (node)
     {
-        node->tag = Number_t;
-        node->variant.number = x;
+        node->tag = Float_t;
+        node->variant.number = n;
     }
     
     return node;
 }
 
-JSON * JSON::newBoolean(bool value)
+JSON * JSON::new_unsigned(unsigned int n)
 {
-    JSON *node = JSON::newNode();
+    JSON *node = JSON::new_node();
+    
+    if (node)
+    {
+        node->tag = Unsigned_t;
+        node->variant.u = n;
+    }
+    
+    return node;
+}
+
+JSON * JSON::new_signed(int n)
+{
+    JSON *node = JSON::new_node();
+    
+    if (node)
+    {
+        node->tag = Signed_t;
+        node->variant.i = n;
+    }
+    
+    return node;
+}
+
+JSON * JSON::new_boolean(bool value)
+{
+    JSON *node = JSON::new_node();
     
     if (node)
     {
@@ -60,9 +97,9 @@ JSON * JSON::newBoolean(bool value)
     return node;
 }
 
-JSON * JSON::newNull()
+JSON * JSON::new_null()
 {
-    JSON *node = JSON::newNode();
+    JSON *node = JSON::new_node();
     
     if (node)
     {
@@ -73,9 +110,9 @@ JSON * JSON::newNull()
     return node;
 }
 
-JSON * JSON::newString(String str)
+JSON * JSON::new_string(unsigned char *str)
 {
-    JSON *node = JSON::newNode();
+    JSON *node = JSON::new_node();
     
     if (node)
     {
@@ -87,9 +124,9 @@ JSON * JSON::newString(String str)
 }
 
 
-JSON * JSON::newObject()
+JSON * JSON::new_object()
 {
-    JSON *node = JSON::newNode();
+    JSON *node = JSON::new_node();
     
     if (node)
     {
@@ -100,42 +137,21 @@ JSON * JSON::newObject()
     return node;
 }
 
-JSON * JSON::newArray(unsigned int size)
+Json_Tag JSON::json_type()
 {
-    // Help! I don't know how to safely allocate arrays
-    // dynamically on constrained system like the Arduino Uno
-    return null;
+    return this->tag;
 }
 
-string JSON::stringify(JSON& obj)
-{
-    // Not sure what to do given issues with dynamic strings
-    // guess that we need a static char *buffer to write to 
-    return "hello world";
-}
-
-JSON * JSON::parse(String src)
-{
-    // *** Implement me ***
-    return (JSON *)0;
-}
-
-void JSON::to_string(String str)
-{
-    // not sure what to do given issues with dynamic strings
-    // guess that we need a static char *buffer to write to 
-}
-
-void JSON::insert(String name, JSON *value)
-{
-    if (this->tag == String_t)
-        this->variant.object = AvlNode::avlInsertKey(this->variant.object, name, value);
-}
-
-JSON * JSON::retrieve(String name)
+void JSON::insert(unsigned int symbol, JSON *value)
 {
     if (this->tag == Object_t)
-        return (JSON *)AvlNode::avlFindKey(this->variant.object, (AvlKey)name);
+        this->variant.object = AvlNode::avlInsertKey(this->variant.object, symbol, value);
+}
+
+JSON * JSON::retrieve(unsigned int symbol)
+{
+    if (this->tag == Object_t)
+        return (JSON *)AvlNode::avlFindKey(this->variant.object, (AvlKey)symbol);
         
     return null;
 }

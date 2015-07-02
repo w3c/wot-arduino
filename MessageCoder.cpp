@@ -1,25 +1,47 @@
 /*
-   Experimental WoT Message encoder/decoder
+    Experimental WoT Message encoder/decoder
    
-   A server hosting a proxy for a thing, and the server hosting the
-   thing it proxies both have shared access to the things data model.
-   This can be exploited for concise message encodings by sending a
-   symbol in place of a string. For common situations, a symbol can be
-   encoded with a singe byte.
+    A server hosting a proxy for a thing, and the server hosting the
+    thing it proxies both have shared access to the things data model.
+    This can be exploited for concise message encodings by sending a
+    symbol in place of a string. For common situations, a symbol can be
+    encoded with a singe byte.
    
-   The message format starts with an identifier for the thing. This is
-   followed by an item. Each item is at least one byte in length and
-   is one of: symbol, number, string, or object. Objects are formed by
-   zero or more pairs of name/value pairs followed by a byte code that
-   marks the end of the object. Names are symbols or strings. Values are
-   items. Strings are null terminated UTF-8 byte sequences. Numbers are
-   signed or unsigned integers and single precision floats. Integers
-   take one or more bytes to encode.
+    The message format starts with an identifier for the thing. This is
+    followed by an item. Each item is at least one byte in length and
+    is one of: symbol, number, string, or object. Objects are formed by
+    zero or more pairs of name/value pairs followed by a byte code that
+    marks the end of the object. Names are symbols or strings. Values are
+    items. Strings are null terminated UTF-8 byte sequences. Numbers are
+    signed or unsigned integers and single precision floats. Integers
+    take one or more bytes to encode.
    
-   Symbols include a core set that are used in messages, specials such
-   as true, false, and null, and thing specific symbols. A single byte
-   is used for the first 200 symbols, which should be sufficient in
-   most circumstances for microcontroller based servers.
+    Symbols include a core set that are used in messages, specials such
+    as true, false, and null, and thing specific symbols. A single byte
+    is used for the first 200 symbols, which should be sufficient in
+    most circumstances for microcontroller based servers.
+   
+    Open questions:
+   
+    For microcontrollers with low memory and small packet sizes,
+    we just need to support a bare minimum of core data types.
+    
+    If we want to expand the scope to very high through-put servers,
+    then a more extensive set of core data types could be valuable. 
+
+       Do we need 64 bit precision floats for IoT applications?
+       Do we need 64 bit timestamps (mS since epoch)?
+       Do we need to distinguish URIs from strings?
+       Do we need an arbitrary length bit vector?
+       If we need binary blobs, how to encode their content type?
+       
+    The answer is no for all of these, at least for now. There are
+    plenty of reserved tags we could use for extensions.
+       
+    The Arduino treats both float and double as 32 bit IEEE floating
+    point numbers, and also lacks support for 64 bit integers. There
+    is a library for getting the time in seconds since epoch. Finer
+    grained time will be needed for machine control applications.
 */
 
 #include <iostream>
@@ -30,10 +52,8 @@ using namespace std;
 void MessageBuffer::set_buffer(unsigned char *buf, unsigned len)
 {
     union unum {
-        unsigned char bytes[4];
+        unsigned char bytes[2];
         uint16_t u;
-        int16_t i;
-        float x;
     } num;
 
     buffer = buf;
@@ -45,12 +65,12 @@ void MessageBuffer::set_buffer(unsigned char *buf, unsigned len)
     big_endian = (num.bytes[0] == 1 ? true : false);
 }
 
-bool MessageBuffer::is_big_endian()
+boolean MessageBuffer::is_big_endian()
 {
     return big_endian;
 }
 
-bool MessageBuffer::overflowed()
+boolean MessageBuffer::overflowed()
 {
     return overflow;
 }
@@ -81,7 +101,7 @@ unsigned int MessageBuffer::view_byte()
     return 256;  // to signal error
 }
 
-bool MessageBuffer::put_byte(unsigned char c)
+boolean MessageBuffer::put_byte(unsigned char c)
 {
     if (size < length)
     {
@@ -93,10 +113,10 @@ bool MessageBuffer::put_byte(unsigned char c)
     return false;
 }
 
-bool MessageCoder::decode_object(MessageBuffer *buffer)
+boolean MessageCoder::decode_object(MessageBuffer *buffer)
 {
     unsigned int c;
-    String s;
+    unsigned char *s;
     
     cout << "start object\n";
     
@@ -148,7 +168,7 @@ bool MessageCoder::decode_object(MessageBuffer *buffer)
     return true;
 }
 
-bool MessageCoder::decode_array(MessageBuffer *buffer)
+boolean MessageCoder::decode_array(MessageBuffer *buffer)
 {
     unsigned int c;
     
@@ -175,7 +195,7 @@ bool MessageCoder::decode_array(MessageBuffer *buffer)
     return true;
 }
 
-bool MessageCoder::decode(MessageBuffer *buffer)
+boolean MessageCoder::decode(MessageBuffer *buffer)
 {
     unsigned int c = buffer->get_byte();
     
@@ -189,7 +209,7 @@ bool MessageCoder::decode(MessageBuffer *buffer)
     
         case WOT_STRING:
         {
-            String s = buffer->get_pointer();
+            unsigned char *s = buffer->get_pointer();
             while ((c = buffer->get_byte()) && c < 256); 
             
             if (c)
@@ -279,45 +299,20 @@ bool MessageCoder::decode(MessageBuffer *buffer)
                 cout.precision(7);
                 cout << "float " << num.x << "\n";
             }
-            
             break;
         }
         
-        case WOT_FLOAT_64:
-        {
-            union unum
-            {
-                unsigned char bytes8[8];
-                double xx;
-            } num;
-
-            if (buffer->is_big_endian())
-            { 
-                num.bytes8[7] = buffer->get_byte();
-                num.bytes8[6] = buffer->get_byte();
-                num.bytes8[5] = buffer->get_byte();
-                num.bytes8[4] = buffer->get_byte();
-                num.bytes8[3] = buffer->get_byte();
-                num.bytes8[2] = buffer->get_byte();
-                num.bytes8[1] = buffer->get_byte();
-                num.bytes8[0] = buffer->get_byte();
-            }
-            else
-            { 
-                num.bytes8[0] = buffer->get_byte();
-                num.bytes8[1] = buffer->get_byte();
-                num.bytes8[2] = buffer->get_byte();
-                num.bytes8[3] = buffer->get_byte();
-                num.bytes8[4] = buffer->get_byte();
-                num.bytes8[5] = buffer->get_byte();
-                num.bytes8[6] = buffer->get_byte();
-                num.bytes8[7] = buffer->get_byte();
-            }
-        
-            cout.precision(15);
-            cout << "double " << num.xx << "\n";
+        case WOT_VALUE_NULL:
+            cout << "null\n";
             break;
-        }
+        
+        case WOT_VALUE_TRUE:
+            cout << "true\n";
+            break;
+        
+        case WOT_VALUE_FALSE:
+            cout << "false\n";
+            break;
         
         default:
         {
@@ -334,16 +329,8 @@ bool MessageCoder::decode(MessageBuffer *buffer)
             }
             else if (WOT_SYM_BASE <= c && c < 256)
             {
-                uint16_t u = c - WOT_SYM_BASE;
-        
-                if (u == WOT_SYM_NULL)
-                    cout << "symbol null\n";
-                else if (u == WOT_SYM_TRUE)
-                    cout << "symbol true\n";
-                else if (u == WOT_SYM_FALSE)
-                    cout << "symbol false\n";
-                else
-                    cout << "symbol " << u << "\n";
+                c -= WOT_SYM_BASE;
+                cout << "symbol " << c << "\n";
             }
             else // unexpected end of buffer
             {
@@ -472,6 +459,7 @@ void MessageCoder::encode_signed32(MessageBuffer *buffer, int32_t n)
     }
 }
 
+// Arduino uses 32 bits for both float and double
 void MessageCoder::encode_float(MessageBuffer *buffer, float x)
 {
     buffer->put_byte(WOT_FLOAT_32);
@@ -499,41 +487,6 @@ void MessageCoder::encode_float(MessageBuffer *buffer, float x)
     }
 }
 
-void MessageCoder::encode_double(MessageBuffer *buffer, double x)
-{
-    buffer->put_byte(WOT_FLOAT_64);
-    
-    union unum {
-        unsigned char bytes[8];
-            double x;
-        } num;
-        
-        num.x = x;
-
-    if (buffer->is_big_endian())
-    {
-        buffer->put_byte(num.bytes[7]);
-        buffer->put_byte(num.bytes[6]);
-        buffer->put_byte(num.bytes[5]);
-        buffer->put_byte(num.bytes[4]);
-        buffer->put_byte(num.bytes[3]);
-        buffer->put_byte(num.bytes[2]);
-        buffer->put_byte(num.bytes[1]);
-        buffer->put_byte(num.bytes[0]);
-    }
-    else
-    { 
-        buffer->put_byte(num.bytes[0]);
-        buffer->put_byte(num.bytes[1]);
-        buffer->put_byte(num.bytes[2]);
-        buffer->put_byte(num.bytes[3]);
-        buffer->put_byte(num.bytes[4]);
-        buffer->put_byte(num.bytes[5]);
-        buffer->put_byte(num.bytes[6]);
-        buffer->put_byte(num.bytes[7]);
-    }
-}
-
 void MessageCoder::encode_symbol(MessageBuffer *buffer, unsigned int sym)
 {
     if (sym > 200)
@@ -548,20 +501,20 @@ void MessageCoder::encode_symbol(MessageBuffer *buffer, unsigned int sym)
 
 void MessageCoder::encode_null(MessageBuffer *buffer)
 {
-    buffer->put_byte(WOT_SYM_NULL + WOT_SYM_BASE);
+    buffer->put_byte(WOT_VALUE_NULL);
 }
 
 void MessageCoder::encode_true(MessageBuffer *buffer)
 {
-    buffer->put_byte(WOT_SYM_TRUE + WOT_SYM_BASE);
+    buffer->put_byte(WOT_VALUE_TRUE);
 }
 
 void MessageCoder::encode_false(MessageBuffer *buffer)
 {
-    buffer->put_byte(WOT_SYM_FALSE + WOT_SYM_BASE);
+    buffer->put_byte(WOT_VALUE_FALSE);
 }
 
-void MessageCoder::encode_string(MessageBuffer *buffer, String str)
+void MessageCoder::encode_string(MessageBuffer *buffer, unsigned char *str)
 {
     unsigned char c, *p = str;
     
@@ -593,7 +546,7 @@ void MessageCoder::encode_array_end(MessageBuffer *buffer)
     buffer->put_byte(WOT_END_ARRAY);
 }
 
-#define WOT_MESSAGE_LENGTH 5
+#define WOT_MESSAGE_LENGTH 128
 
 void MessageCoder::test()
 {
@@ -601,8 +554,7 @@ void MessageCoder::test()
     MessageCoder coder;
     
     unsigned char buffer[WOT_MESSAGE_LENGTH];
-    const double PI = 3.141592653589793238463;
-    cout << "double pi = " << PI << "\n";
+    const float PI = 3.1415926;
     
     cout << "int has " << sizeof(int) << " bytes\n";
     cout << "long has " << sizeof(long) << " bytes\n";
@@ -611,7 +563,7 @@ void MessageCoder::test()
     
     membuf.set_buffer(&buffer[0], WOT_MESSAGE_LENGTH);
 
-    coder.encode_string(&membuf, (String)"hello world");
+    coder.encode_string(&membuf, (unsigned char *)"hello world");
     cout << "used " << membuf.get_size() << " bytes\n";
     cout << "overflowed: " << (membuf.overflowed() ? "true" : "false") << "\n";
 
@@ -620,9 +572,9 @@ void MessageCoder::test()
     membuf.set_buffer(&buffer[0], WOT_MESSAGE_LENGTH);
 
     coder.encode_array_start(&membuf);
-    coder.encode_string(&membuf, (String)"one");
-    coder.encode_string(&membuf, (String)"two");
-    coder.encode_string(&membuf, (String)"three");
+    coder.encode_string(&membuf, (unsigned char *)"one");
+    coder.encode_string(&membuf, (unsigned char *)"two");
+    coder.encode_string(&membuf, (unsigned char *)"three");
     coder.encode_symbol(&membuf, 79);
     coder.encode_null(&membuf);
     coder.encode_true(&membuf);
@@ -636,7 +588,6 @@ void MessageCoder::test()
     coder.encode_signed16(&membuf, -32768);
     coder.encode_signed32(&membuf, 32768);
     coder.encode_float(&membuf, (float)PI);
-    coder.encode_double(&membuf, PI);
     coder.encode_array_end(&membuf);
     
     cout << "used " << membuf.get_size() << " bytes\n";

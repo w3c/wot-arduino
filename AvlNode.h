@@ -2,8 +2,8 @@
 
 #include "core.h"
 
-typedef String AvlKey;  // e.g. memory address of object
-typedef void *AvlValue;
+typedef unsigned int AvlKey;  // e.g. a symbol
+typedef void *AvlValue; // e.g. pointer to a JSON object
 
 class AvlNode
 {

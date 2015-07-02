@@ -2,43 +2,55 @@
 
 #include "core.h"
 #include "AvlNode.h"
+#include "HashTable.h"
 
 using namespace std;  // for string and memset
 
-enum Json_Tag { Array_t, Object_t, String_t, Number_t, Boolean_t, Null_t };
+enum Json_Tag { Object_t, String_t, Unsigned_t, Signed_t, Float_t, Boolean_t, Null_t };
 
 class JSON
 {
     public:
         static void initialise_pool(JSON *pool, unsigned int size);
-        static string stringify(JSON& obj);
-        static JSON * parse(String src);
+        static JSON * parse(unsigned char *src, unsigned int length);
 
-        static JSON * newNumber(float x);
-        static JSON * newNull();
-        static JSON * newBoolean(bool value);
-        static JSON * newString(String str);
-        static JSON * newObject();
-        static JSON * newArray(unsigned int size);
+        static JSON * new_unsigned(unsigned int x);
+        static JSON * new_signed(int x);
+        static JSON * new_float(float x);
+        static JSON * new_null();
+        static JSON * new_boolean(boolean value);
+        static JSON * new_string(unsigned char *str);
+        static JSON * new_object();
+
+        void insert(unsigned int symbol, JSON *value);
+        JSON * retrieve(unsigned int symbol);
+        Json_Tag json_type();
         
     private:
+        class JSONLexer
+        {
+            public:
+                HashTable table;
+                unsigned char *src;
+                unsigned int length;
+        };
+        
         static unsigned int length;
         static unsigned int size;
         static JSON *pool;
         
-        static JSON * newNode();
-
-        void to_string(String str);
-        void insert(String name, JSON *value);
-        JSON *retrieve(String name);
+        static JSON * new_node();
+        static JSON * parse_private(JSONLexer *lexer);
         
         Json_Tag tag;
         
         union js_union
         {
-            String str;
+            unsigned char *str;
             float number;
-            int truth;
+            unsigned int u;
+            int i;
+            boolean truth;
             JSON *array;
             AvlNode *object;
         } variant;
