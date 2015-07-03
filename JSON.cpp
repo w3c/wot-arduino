@@ -3,23 +3,44 @@
 #include <ctype.h>
 #include "JSON.h"
 
-// initialise memory pool for allocating nodes
-JSON *JSON::pool = NULL;
-unsigned int JSON::length = 0;
-unsigned int JSON::size = 0;
+// initialise memory pool for allocating JSON nodes
 
-void JSON::initialise_pool(JSON *buffer, unsigned int size)
+JSON *JSON::json_pool = NULL;
+unsigned int JSON::json_pool_length = 0;
+unsigned int JSON::json_pool_size = 0;
+
+// initialise memory pool for allocating JSON arrays
+
+JSON **JSON::array_pool = NULL;
+unsigned int JSON::array_pool_length = 0;
+unsigned int JSON::array_pool_size = 0;
+
+void JSON::initialise_json_pool(JSON *buffer, unsigned int size)
 {
-    pool = buffer;  // memory for size nodes
-    length = size;  // number of possible nodes
-    size = 0;  // index for allocation next node
+    json_pool = buffer;  // memory for size nodes
+    json_pool_length = size;  // number of possible nodes
+    json_pool_size = 0;  // index for allocation next node
     memset(buffer, 0, size * sizeof(JSON));
 }
 
-float JSON::used()
+void JSON::initialise_array_pool(JSON **buffer, unsigned int size)
+{
+    array_pool = buffer;  // memory for size nodes
+    array_pool_length = size;  // number of possible nodes
+    array_pool_size = 0;  // index for allocation next node
+    memset(buffer, 0, size * sizeof(JSON *));
+}
+
+float JSON::json_pool_used()
 {
     // return percentage of allocated nodes
-    return 100.0 * size / (1.0 * length);
+    return 100.0 * json_pool_size / (1.0 * json_pool_length);
+}
+
+float JSON::array_pool_used()
+{
+    // return percentage of allocated nodes
+    return 100.0 * array_pool_size / (1.0 * array_pool_length);
 }
 
 JSON * JSON::parse(const char *src)
@@ -128,34 +149,43 @@ JSON * JSON::parse_object(Lexer *lexer)
 
 JSON * JSON::parse_array(Lexer *lexer)
 {
-    JSON *array = new_array();
-    Json_Token token = lexer->get_token();
+    JSON *array = new_array(), **p;
+    int count = 0;
     
-    while (token != Error_token)
+    if (lexer->end_of_array())
+        return array;  // empty array
+        
+    for (;;)
     {
-        if (token == Array_stop_token)
-            return array;
-
         JSON *item = parse_private(lexer);
-        
+    
         if (!item)
+        {
+            cout << "missing array item\n";
             break;
+        }
         
-        token = lexer->get_token();
+        p = new_array_item(item);
+        
+        if (!p)
+            break;
+            
+        if (count++ == 0)
+            array->variant.array = p;
+        
+        Json_Token token = lexer->get_token();
         
         if (token == Array_stop_token)
-            continue;
+        {
+            new_array_item(null);
+            return array;
+        }
             
         if (token != Comma_token)
             break;
-            
-        token = lexer->get_token();
-        
-        if (token == Array_stop_token)
-            break;
     }
     
-    cout << "JSON syntax error in array, token is " << token << "\n";
+    cout << "JSON syntax error in array\n";
     return null;
 }
 
@@ -178,6 +208,30 @@ void JSON::print_name_value(AvlKey key, AvlValue value, void *context)
     cout << ",";
 }
 
+void JSON::print_array()
+{
+    JSON *item, **p = this->variant.array;
+    
+    if (!p)
+    {
+        cout << "[ ]";
+        return;
+    }
+    
+    cout << "[ ";
+    
+    while (*p)
+    {
+        item = *p++;
+        item->print();
+        
+        if (*p)
+            cout << ", ";
+    }
+    
+    cout << "]";
+}
+
 void JSON::print()
 {
     switch (this->tag)
@@ -189,7 +243,7 @@ void JSON::print()
             break;
             
         case Array_t:
-            cout << " array ";
+            print_array();
             break;
             
         case String_t:
@@ -221,14 +275,27 @@ JSON * JSON::new_node()
 {
     JSON * node = NULL;
     
-    if (pool && size < length)
+    if (json_pool && json_pool_size < json_pool_length)
     {
-        node = pool + size++;
+        node = json_pool + json_pool_size++;
         node->tag = Null_t;
         node->variant.number = 0.0;
     }
     
     return node;
+}
+
+// allocate array item from fixed memory pool
+// allow for null pointer to mark end of array
+JSON ** JSON::new_array_item(JSON *item)
+{
+    if (array_pool && (array_pool_size < array_pool_length - 1 || !item))
+    {
+        array_pool[array_pool_size] = item;
+        return array_pool + array_pool_size++;
+    }
+
+    return null;
 }
 
 JSON * JSON::new_float(float n)
@@ -289,8 +356,7 @@ JSON * JSON::new_null()
     
     if (node)
     {
-        node->tag = Object_t;
-        node->variant.object = null;
+        node->tag = Null_t;
     }
     
     return node;
@@ -356,6 +422,22 @@ JSON * JSON::retrieve(unsigned int symbol)
         return (JSON *)AvlNode::find_key(this->variant.object, (AvlKey)symbol);
         
     return null;
+}
+
+boolean JSON::Lexer::end_of_array()
+{
+    unsigned int c = peek_byte();
+    
+    while (isspace(c))
+    {
+        next_byte();
+        c = peek_byte();
+    }
+
+    if (c == ']')
+        return true;
+        
+    return false;
 }
 
 Json_Token JSON::Lexer::get_token()

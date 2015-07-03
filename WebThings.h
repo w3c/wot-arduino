@@ -16,7 +16,8 @@ typedef void (*EventHandler)(unsigned char *event, Thing *thing, Any data);
 // size of the various memory pools
 
 #define AVL_NODE_POOL_SIZE 80
-#define JSON_NODE_POOL_SIZE 30
+#define JSON_NODE_POOL_SIZE 60
+#define JSON_ARRAY_POOL_SIZE 60
 
 // abstract class with methods common to Thing and Proxy
 class CoreThing

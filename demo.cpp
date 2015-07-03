@@ -63,7 +63,7 @@ int main ()
     //MessageCoder coder;
     //coder.test();
     
-    const char *test = agent_model;
+    const char *test = "[ \"hello\", null]";
     
     JSON *json = JSON::parse(test);
     
@@ -77,7 +77,8 @@ int main ()
     cout << "\n";
     
     cout << "AVL Pool is using " << AvlNode::used() << "% of available nodes\n";
-    cout << "JSON Pool is using " << JSON::used() << "% of available nodes\n";
+    cout << "JSON Pool is using " << JSON::json_pool_used() << "% of available nodes\n";
+    cout << "Array Pool is using " << JSON::array_pool_used() << "% of available nodes\n";
 /*    
     cout << "test of AVL trees\n";
     AvlNode *tree = null;

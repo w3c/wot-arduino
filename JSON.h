@@ -18,8 +18,10 @@ enum Json_Token {Error_token, String_token, Colon_token, Comma_token,
 class JSON
 {
     public:
-        static void initialise_pool(JSON *pool, unsigned int size);
-        static float used();
+        static void initialise_json_pool(JSON *pool, unsigned int size);
+        static void initialise_array_pool(JSON **pool, unsigned int size);
+        static float json_pool_used();
+        static float array_pool_used();
         static JSON * parse(const char *src, unsigned int length);
         static JSON * parse(const char *src);
         static void print_string(const unsigned char *name, unsigned int length);
@@ -35,6 +37,7 @@ class JSON
         static JSON * new_array();
 
         void print();
+        void print_array();
         void insert(unsigned int symbol, JSON *value);
         JSON * retrieve(unsigned int symbol);
         Json_Tag json_type();
@@ -56,31 +59,37 @@ class JSON
                 Json_Token get_number(unsigned int c);
                 Json_Token get_string();
                 Json_Token get_special(unsigned int c);
+                boolean end_of_array();
                 void next_byte();
                 unsigned int peek_byte();
         };
         
-        static unsigned int length;
-        static unsigned int size;
-        static JSON *pool;
+        static unsigned int json_pool_length;
+        static unsigned int json_pool_size;
+        static JSON * json_pool;
+        
+        static unsigned int array_pool_length;
+        static unsigned int array_pool_size;
+        static JSON ** array_pool;
         
         static JSON * new_node();
+        static JSON ** new_array_item(JSON *item);
         static JSON * parse_private(Lexer *lexer);
         static JSON * parse_object(Lexer *lexer);
         static JSON * parse_array(Lexer *lexer);
         
         Json_Tag tag;
-        unsigned int token_len;  // temporary hack
+        unsigned int token_len;
         
         union js_union
         {
-            unsigned char *str; // temporary hack - replace with symbol
+            unsigned char *str;
             float number;
             unsigned int u;
             int i;
             boolean truth;
             AvlNode *object;
-            void *array;
+            JSON ** array;
         } variant;
 };
 
