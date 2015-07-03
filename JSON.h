@@ -19,7 +19,11 @@ class JSON
 {
     public:
         static void initialise_pool(JSON *pool, unsigned int size);
+        static float used();
         static JSON * parse(const char *src, unsigned int length);
+        static JSON * parse(const char *src);
+        static void print_string(const unsigned char *name, unsigned int length);
+        static void print_name_value(AvlKey key, AvlValue value, void *context);
 
         static JSON * new_unsigned(unsigned int x);
         static JSON * new_signed(int x);
@@ -39,6 +43,7 @@ class JSON
         {
             public:
                 HashTable table;
+                unsigned int symcount;
                 unsigned char *src;
                 unsigned int length;
                 unsigned char *token_src;

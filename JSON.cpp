@@ -16,11 +16,23 @@ void JSON::initialise_pool(JSON *buffer, unsigned int size)
     memset(buffer, 0, size * sizeof(JSON));
 }
 
+float JSON::used()
+{
+    // return percentage of allocated nodes
+    return 100.0 * size / (1.0 * length);
+}
+
+JSON * JSON::parse(const char *src)
+{
+    return parse(src, strlen(src));
+}
+
 JSON * JSON::parse(const char *src, unsigned int length)
 {
     Lexer lexer;
     lexer.src = (unsigned char *)src;
     lexer.length = length;
+    lexer.symcount = 10;
     cout << "parsing " << src << "\n";
     return parse_private(&lexer);
 }
@@ -69,18 +81,47 @@ JSON * JSON::parse_private(Lexer *lexer)
 
 JSON * JSON::parse_object(Lexer *lexer)
 {
+    JSON *object = new_object();
     Json_Token token = lexer->get_token();
     
-    while (token != Error_token && token != Object_stop_token)
+    while (token != Error_token)
     {
+        if (token == Object_stop_token)
+            return object;
+            
+        if (token != String_token)
+            break;
+            
+        unsigned int symbol = lexer->table.get_symbol(lexer->token_src,
+                                        lexer->token_len, &lexer->symcount);
+                                        
         token = lexer->get_token();
         
-        if (token == Object_start_token)
-            parse_object(lexer);
-        else if (token == Array_start_token)
-            parse_array(lexer);
+        if (token != Colon_token)
+            break;
+        
+        JSON *value = parse_private(lexer);
+        
+        if (!value)
+            break;
+        
+        object->variant.object =  AvlNode::insert_key(object->variant.object,
+            symbol, (void *)value);
+            
+        token = lexer->get_token();
+        
+        if (token == Object_stop_token)
+            return object;
+            
+        if (token != Comma_token)
+            break;
+            
+        token = lexer->get_token();
     }
     
+    // free incomplete object here along with its map from symbols to values
+    
+    cout << "JSON syntax error in object, token is " << token << "\n";
     return null;
 }
 
@@ -101,12 +142,33 @@ JSON * JSON::parse_array(Lexer *lexer)
     return null;
 }
 
+void JSON::print_string(const unsigned char *name, unsigned int length)
+{
+    int i;
+    
+    cout << "\"";
+
+    for (i = 0; i < length; ++i)
+        cout << name[i];
+        
+    cout << "\"";
+}
+
+void JSON::print_name_value(AvlKey key, AvlValue value, void *context)
+{
+    cout << "  " << key << " : ";
+    ((JSON *)value)->print();
+    cout << ",";
+}
+
 void JSON::print()
 {
     switch (this->tag)
     {
         case Object_t:
-            cout << " object ";
+            cout << " { ";
+            AvlNode::apply(this->variant.object, (AvlApplyFn)print_name_value, null);
+            cout << " } ";
             break;
             
         case Array_t:
@@ -114,7 +176,7 @@ void JSON::print()
             break;
             
         case String_t:
-            cout << " string ";
+            print_string(this->variant.str, this->token_len);
             break;
             
         case Unsigned_t:
@@ -125,6 +187,8 @@ void JSON::print()
                     
         case Boolean_t:
             cout << (this->variant.truth ? " true " : " false ");
+            break;
+            
         case Null_t:
             cout << " null ";
             break;
@@ -247,13 +311,13 @@ Json_Tag JSON::json_type()
 void JSON::insert(unsigned int symbol, JSON *value)
 {
     if (this->tag == Object_t)
-        this->variant.object = AvlNode::avlInsertKey(this->variant.object, symbol, value);
+        this->variant.object = AvlNode::insert_key(this->variant.object, symbol, value);
 }
 
 JSON * JSON::retrieve(unsigned int symbol)
 {
     if (this->tag == Object_t)
-        return (JSON *)AvlNode::avlFindKey(this->variant.object, (AvlKey)symbol);
+        return (JSON *)AvlNode::find_key(this->variant.object, (AvlKey)symbol);
         
     return null;
 }
@@ -289,7 +353,6 @@ Json_Token JSON::Lexer::get_token()
             next_byte();
             return Array_stop_token;
         case '"':
-            next_byte();
             return get_string();
         case '-':
         case '.':

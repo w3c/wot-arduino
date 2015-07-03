@@ -14,7 +14,21 @@ float HashTable::used()
     return 100.0 * entries / (1.0 * HASH_TABLE_SIZE);
 }
 
-unsigned int HashTable::hash(unsigned char *key, unsigned int length)
+void HashTable::print()
+{
+    cout << "table has " << entries << " entries, " << used() << "% full\n";
+    for (int i = HASH_TABLE_SIZE; i > 0; )
+    {
+        HashEntry *entry = table + (--i);
+        
+        if (entry->key)
+        {
+            cout << "  " << entry-> key << " : " << entry->value << "\n";
+        }
+    }
+}
+
+unsigned int HashTable::hash(const unsigned char *key, unsigned int length)
 {
     // Jenkins One-at-a-Time hash
     unsigned char *p = (unsigned char *)key;
@@ -34,7 +48,8 @@ unsigned int HashTable::hash(unsigned char *key, unsigned int length)
     return h;
 }
 
-int HashTable::strcmp(unsigned char *s1, unsigned int len1, unsigned char *s2, unsigned int len2)
+int HashTable::strcmp(const unsigned char *s1, unsigned int len1,
+                        const unsigned char *s2, unsigned int len2)
 {
         
     if (len1 && len2)
@@ -45,7 +60,7 @@ int HashTable::strcmp(unsigned char *s1, unsigned int len1, unsigned char *s2, u
             s2++;
         }
     
-        return *(const unsigned char*)s1-*(const unsigned char*)s2;
+        return *s1-*s2;
     }
         
     if (!(len1 | len2))
@@ -54,12 +69,46 @@ int HashTable::strcmp(unsigned char *s1, unsigned int len1, unsigned char *s2, u
     return (len1 ? 1 : -1);
 }
 
-boolean HashTable::insert_key(unsigned char *key, unsigned int length, unsigned int value)
+unsigned int HashTable::get_symbol(const unsigned char *key, unsigned int length, unsigned int *count)
 {
-    unsigned int i = 0, hashval = hash(key, length), index = hashval % HASH_TABLE_SIZE;
+    unsigned int i = HASH_TABLE_SIZE, hashval = hash(key, length), index = hashval % HASH_TABLE_SIZE;
     HashEntry *entry = 0;
     
-    while (i++ < HASH_TABLE_SIZE && (entry = table+index, entry->key))
+    while (i-- && (entry = table+index, entry->key))
+    {
+        if (!strcmp(entry->key, entry->length, key, length))
+        {
+            return entry->value;
+        }
+            
+        index = (++index % HASH_TABLE_SIZE);
+    }
+    
+    if (i && entry)
+    {
+        entry->key = key;
+        entry->length = length;
+        entry->value = *count;
+        *count = *count + 1;
+        ++entries;
+        return entry->value;
+    }
+    
+    return false;
+}
+
+boolean HashTable::insert_key(const unsigned char *key, unsigned int value)
+{
+    unsigned int length = strlen((const char *)key);
+    return insert_key(key, length, value);
+}
+
+boolean HashTable::insert_key(const unsigned char *key, unsigned int length, unsigned int value)
+{
+    unsigned int i = HASH_TABLE_SIZE, hashval = hash(key, length), index = hashval % HASH_TABLE_SIZE;
+    HashEntry *entry = 0;
+    
+    while (i-- && (entry = table+index, entry->key))
     {
         if (!strcmp(entry->key, entry->length, key, length))
         {
@@ -70,7 +119,7 @@ boolean HashTable::insert_key(unsigned char *key, unsigned int length, unsigned 
         index = (++index % HASH_TABLE_SIZE);
     }
     
-    if (i < HASH_TABLE_SIZE && entry)
+    if (i && entry)
     {
         entry->key = key;
         entry->length = length;
@@ -82,12 +131,12 @@ boolean HashTable::insert_key(unsigned char *key, unsigned int length, unsigned 
     return false;
 }
 
-unsigned int HashTable::find_key(unsigned char *key, unsigned int length)
+unsigned int HashTable::find_key(const unsigned char *key, unsigned int length)
 {
-    unsigned int i = 0, hashval = hash(key, length), index = hashval % HASH_TABLE_SIZE;
+    unsigned int i = HASH_TABLE_SIZE, hashval = hash(key, length), index = hashval % HASH_TABLE_SIZE;
     HashEntry *entry;
     
-    while (i++ < HASH_TABLE_SIZE &&  (entry = table+index, entry))
+    while (i-- &&  (entry = table+index, entry))
     {
         if (!strcmp(entry->key, entry->length, key, length))
             return entry->value;

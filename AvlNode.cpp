@@ -16,8 +16,43 @@ void AvlNode::initialise_pool(AvlNode *buffer, unsigned int size)
   size = 0;  // index for allocation next node
 }
 
+float AvlNode::used()
+{
+    // return percentage of allocated nodes
+    return 100.0 * size / (1.0 * length);
+}
+
+// for debugging - remove to save space
+void AvlNode::print_keys(AvlNode *tree)
+{
+    if (tree)
+    {
+        print_keys(tree->left);
+        cout << "  " << tree->key << "\n";
+        print_keys(tree->right);
+    }
+}
+
+void AvlNode::apply(AvlNode *tree, AvlApplyFn applyFn, void *data)
+{
+    if (tree)
+    {
+        apply(tree->left, applyFn, data);
+        (*applyFn)(tree->key, tree->value, data);
+        apply(tree->right, applyFn, data);
+    }
+}
+
+unsigned int AvlNode::get_size(AvlNode *tree)
+{
+    if (tree)
+        return get_size(tree->left) + 1 + get_size(tree->right);
+
+    return 0;
+}
+
 // allocate node from fixed memory pool
-AvlNode * AvlNode::newNode(AvlKey key, AvlValue value)
+AvlNode * AvlNode::new_node(AvlKey key, AvlValue value)
 {
     AvlNode * node = 0;
     
@@ -33,7 +68,7 @@ AvlNode * AvlNode::newNode(AvlKey key, AvlValue value)
     return node;
 }
 
-AvlNode *AvlNode::avlFindKey(AvlNode *tree, AvlKey key)
+AvlNode *AvlNode::find_key(AvlNode *tree, AvlKey key)
 {
     while (tree)
     {
@@ -46,7 +81,7 @@ AvlNode *AvlNode::avlFindKey(AvlNode *tree, AvlKey key)
     return 0;
 }
 
-AvlNode *AvlNode::avlFirst(AvlNode *tree)
+AvlNode *AvlNode::first(AvlNode *tree)
 {
     if (tree)
     {
@@ -56,7 +91,7 @@ AvlNode *AvlNode::avlFirst(AvlNode *tree)
     return tree;
 }
 
-AvlNode *AvlNode::avlLast(AvlNode *tree)
+AvlNode *AvlNode::last(AvlNode *tree)
 {
     if (tree)
     {
@@ -66,17 +101,17 @@ AvlNode *AvlNode::avlLast(AvlNode *tree)
     return tree;
 }
 
-int AvlNode::avlTreeHeight(AvlNode *tree)
+int AvlNode::tree_height(AvlNode *tree)
 {
     if (!tree) return 0;
 
-    int lh = avlTreeHeight(tree->left);
-    int rh = avlTreeHeight(tree->right);
+    int lh = tree_height(tree->left);
+    int rh = tree_height(tree->right);
 
     return 1 + MAX(lh, rh);
 }
 
-int AvlNode::avlNodeHeight(AvlNode *node)
+int AvlNode::node_height(AvlNode *node)
 {
     return (node ? node->height : 0);
 }
@@ -88,43 +123,43 @@ int max(int x, int y)
 
 // rebalancing operations from wikipedia diagram
 // see http://en.wikipedia.org/wiki/AVL_tree
-AvlNode *AvlNode::avlLeftLeft(AvlNode *p5)
+AvlNode *AvlNode::left_left(AvlNode *p5)
 {
     //printf("applying left left\n");
     AvlNode *p3 = p5->left;
     p5->left = p3->right;
     p3->right = p5;
-    p5->height = max(avlNodeHeight(p5->left), avlNodeHeight(p5->right)) + 1;
-    p3->height = max(avlNodeHeight(p3->left), p5->height) + 1;
+    p5->height = max(node_height(p5->left), node_height(p5->right)) + 1;
+    p3->height = max(node_height(p3->left), p5->height) + 1;
     return p3;
 }
 
-AvlNode *AvlNode::avlRightRight(AvlNode *p3)
+AvlNode *AvlNode::right_right(AvlNode *p3)
 {
     //printf("applying right right\n");
     AvlNode *p5 = p3->right;
     p3->right = p5->left;
     p5->left = p3;
-    p3->height = max(avlNodeHeight(p3->left), avlNodeHeight(p3->right)) + 1;
-    p5->height = max(p3->height, avlNodeHeight(p5->right)) + 1;
+    p3->height = max(node_height(p3->left), node_height(p3->right)) + 1;
+    p5->height = max(p3->height, node_height(p5->right)) + 1;
     return p5;
 }
 
-AvlNode *AvlNode::avlLeftRight(AvlNode *p5)
+AvlNode *AvlNode::left_right(AvlNode *p5)
 {
     //printf("applying left right\n");
-    p5->left = avlRightRight(p5->left);
-    return avlLeftLeft(p5);
+    p5->left = right_right(p5->left);
+    return left_left(p5);
 }
 
-AvlNode *AvlNode::avlRightLeft(AvlNode *p3)
+AvlNode *AvlNode::right_left(AvlNode *p3)
 {
     //printf("applying right left\n");
-    p3->right = avlLeftLeft(p3->right);
-    return avlRightRight(p3);
+    p3->right = left_left(p3->right);
+    return right_right(p3);
 }
 
-int AvlNode::avlGetBalance(AvlNode *tree)
+int AvlNode::get_balance(AvlNode *tree)
 {
     int balance = 0;
 
@@ -140,68 +175,66 @@ int AvlNode::avlGetBalance(AvlNode *tree)
     return balance;
 }
 
-AvlNode *AvlNode::avlBalance(AvlNode *tree)
+AvlNode *AvlNode::balance(AvlNode *tree)
 {
     int balance, lh, rh;
 
-    balance = avlGetBalance(tree);
+    balance = get_balance(tree);
 
     if (balance < -1)
     {
-        balance = avlGetBalance(tree->left);
+        balance = get_balance(tree->left);
 
         if (balance > 0)
-            tree = avlLeftRight(tree);
+            tree = left_right(tree);
         else
-            tree = avlLeftLeft(tree);
+            tree = left_left(tree);
     }
     else if (balance > 1)
     {
-        balance = avlGetBalance(tree->right);
+        balance = get_balance(tree->right);
 
         if (balance < 0)
-            tree = avlRightLeft(tree);
+            tree = right_left(tree);
         else
-            tree = avlRightRight(tree);
+            tree = right_right(tree);
     }
 
-    lh = avlNodeHeight(tree->left);
-    rh = avlNodeHeight(tree->right);
+    lh = node_height(tree->left);
+    rh = node_height(tree->right);
     tree->height = (lh > rh ? lh : rh) + 1;
     return tree;
 }
 
-AvlNode *AvlNode::avlInsertKey(AvlNode *tree, AvlKey key, AvlValue value)
+AvlNode *AvlNode::insert_key(AvlNode *tree, AvlKey key, AvlValue value)
 {
     if (!tree)
     {
         //tree = new AvlNode(key, value);
         
-        tree = newNode(key, value);
+        tree = new_node(key, value);
         return tree;
     }
 
     if (key < tree->key)
     {
-        tree->left = avlInsertKey(tree->left, key, value);
-        tree = avlBalance(tree);
+        tree->left = insert_key(tree->left, key, value);
+        tree = balance(tree);
     }
     else if (key > tree->key)
     {
-        tree->right = avlInsertKey(tree->right, key, value);
-        tree = avlBalance(tree);
+        tree->right = insert_key(tree->right, key, value);
+        tree = balance(tree);
     }
     /* otherwise tree already has key */
 
     return tree;
 }
 
-AvlNode *AvlNode::mkAvlNode(AvlNode *left, AvlKey key, AvlValue value, AvlNode *right)
+AvlNode *AvlNode::mk_node(AvlNode *left, AvlKey key, AvlValue value, AvlNode *right)
 {
-    //AvlNode *node = new AvlNode(key, value);
-    
-    AvlNode *node = newNode(key, value);
+    AvlNode *node = new_node(key, value);
     node->right = right;
-    node->height = max(avlNodeHeight(node->left), avlNodeHeight(node->right)) + 1;
+    node->height = max(node_height(node->left), node_height(node->right)) + 1;
     return node;
 }

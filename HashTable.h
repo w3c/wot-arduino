@@ -14,8 +14,11 @@ class HashTable
 {
     public:
         HashTable();
-        unsigned int find_key(unsigned char *key, unsigned int length);
-        boolean insert_key(unsigned char *key, unsigned int length, unsigned int value);
+        unsigned int find_key(const unsigned char *key, unsigned int length);
+        boolean insert_key(const unsigned char *key, unsigned int value);
+        boolean insert_key(const unsigned char *key, unsigned int length, unsigned int value);
+        unsigned int get_symbol(const unsigned char *key, unsigned int length, unsigned int *count);
+        void print();
         float used();
             
     private:                
@@ -23,15 +26,15 @@ class HashTable
         {
             public:
             
-            unsigned char *key;
+            const unsigned char *key;
             unsigned int length;
             unsigned int value;
         };
         
         unsigned int entries;
         HashEntry table[HASH_TABLE_SIZE];
-        unsigned int hash(unsigned char *key, unsigned int length);
-        int strcmp(unsigned char *s1, unsigned int len1, unsigned char *s2, unsigned int len2);
+        unsigned int hash(const unsigned char *key, unsigned int length);
+        int strcmp(const unsigned char *s1, unsigned int len1, const unsigned char *s2, unsigned int len2);
 };
 
 #endif
