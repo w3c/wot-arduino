@@ -111,7 +111,7 @@ JSON * JSON::parse_object(Lexer *lexer)
         token = lexer->get_token();
         
         if (token == Object_stop_token)
-            return object;
+            continue;
             
         if (token != Comma_token)
             break;
@@ -125,20 +125,37 @@ JSON * JSON::parse_object(Lexer *lexer)
     return null;
 }
 
+
 JSON * JSON::parse_array(Lexer *lexer)
 {
+    JSON *array = new_array();
     Json_Token token = lexer->get_token();
     
-    while (token != Error_token && token != Array_stop_token)
+    while (token != Error_token)
     {
+        if (token == Array_stop_token)
+            return array;
+
+        JSON *item = parse_private(lexer);
+        
+        if (!item)
+            break;
+        
         token = lexer->get_token();
         
-        if (token == Object_start_token)
-            parse_object(lexer);
-        else if (token == Array_start_token)
-            parse_array(lexer);
+        if (token == Array_stop_token)
+            continue;
+            
+        if (token != Comma_token)
+            break;
+            
+        token = lexer->get_token();
+        
+        if (token == Array_stop_token)
+            break;
     }
     
+    cout << "JSON syntax error in array, token is " << token << "\n";
     return null;
 }
 
@@ -180,9 +197,13 @@ void JSON::print()
             break;
             
         case Unsigned_t:
+            cout << this->variant.u;
+            break;
         case Signed_t:
+            cout << this->variant.i;
+            break;
         case Float_t:
-            cout << " number ";
+            cout << this->variant.number;
             break;
                     
         case Boolean_t:
@@ -298,6 +319,21 @@ JSON * JSON::new_object()
     {
         node->tag = Object_t;
         node->variant.object = null;
+    }
+    
+    return node;
+}
+
+// arrays are not yet implemented
+// need to decide how to store them!
+JSON * JSON::new_array()
+{
+    JSON *node = JSON::new_node();
+    
+    if (node)
+    {
+        node->tag = Array_t;
+        node->variant.array = null;
     }
     
     return node;

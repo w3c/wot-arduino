@@ -32,6 +32,7 @@ class JSON
         static JSON * new_boolean(boolean value);
         static JSON * new_string(unsigned char *str, unsigned int length);
         static JSON * new_object();
+        static JSON * new_array();
 
         void print();
         void insert(unsigned int symbol, JSON *value);
@@ -78,8 +79,8 @@ class JSON
             unsigned int u;
             int i;
             boolean truth;
-            JSON *array;
             AvlNode *object;
+            void *array;
         } variant;
 };
 

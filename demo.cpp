@@ -63,7 +63,7 @@ int main ()
     //MessageCoder coder;
     //coder.test();
     
-    const char *test = light_model;
+    const char *test = agent_model;
     
     JSON *json = JSON::parse(test);
     
