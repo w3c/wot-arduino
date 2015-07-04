@@ -5,13 +5,16 @@
 
 #include "core.h"
 
-typedef unsigned int AvlKey;  // e.g. a symbol
+typedef int AvlKey;  // a symbol or array index
 typedef void *AvlValue; // e.g. pointer to a JSON object
 typedef void (*AvlApplyFn)(AvlKey key, AvlValue value, void *data);
 
 class AvlNode
 {
     public:
+        
+        AvlKey get_key();
+        AvlValue get_value();
         
         static void initialise_pool(AvlNode *pool, unsigned int size);
         static float used();

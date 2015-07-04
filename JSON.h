@@ -19,13 +19,12 @@ class JSON
 {
     public:
         static void initialise_json_pool(JSON *pool, unsigned int size);
-        static void initialise_array_pool(JSON **pool, unsigned int size);
         static float json_pool_used();
-        static float array_pool_used();
         static JSON * parse(const char *src, unsigned int length);
         static JSON * parse(const char *src);
         static void print_string(const unsigned char *name, unsigned int length);
         static void print_name_value(AvlKey key, AvlValue value, void *context);
+        static void print_array_item(AvlKey key, AvlValue value, void *context);
 
         static JSON * new_unsigned(unsigned int x);
         static JSON * new_signed(int x);
@@ -37,11 +36,14 @@ class JSON
         static JSON * new_array();
 
         void print();
-        void print_array();
-        void insert(unsigned int symbol, JSON *value);
-        JSON * retrieve(unsigned int symbol);
         Json_Tag json_type();
         
+        void insert_property(unsigned int symbol, JSON *value);
+        JSON * retrieve_property(unsigned int symbol);
+        
+        void insert_array_item(unsigned int symbol, JSON *value);
+        JSON * retrieve_array_item(unsigned int symbol);
+
     private:
         class Lexer
         {
@@ -68,18 +70,16 @@ class JSON
         static unsigned int json_pool_size;
         static JSON * json_pool;
         
-        static unsigned int array_pool_length;
-        static unsigned int array_pool_size;
-        static JSON ** array_pool;
-        
         static JSON * new_node();
-        static JSON ** new_array_item(JSON *item);
         static JSON * parse_private(Lexer *lexer);
         static JSON * parse_object(Lexer *lexer);
         static JSON * parse_array(Lexer *lexer);
         
+        // to reduce the size of JSON Nodes we could get creative &
+        // combine the tag and string token length into a uint16_t
+        // using special getter and setter methods to hide this
         Json_Tag tag;
-        unsigned int token_len;
+        unsigned int token_len; // used for string lengths
         
         union js_union
         {
@@ -89,7 +89,6 @@ class JSON
             int i;
             boolean truth;
             AvlNode *object;
-            JSON ** array;
         } variant;
 };
 

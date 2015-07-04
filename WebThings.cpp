@@ -6,13 +6,11 @@
 
 AvlNode avlNodePool[AVL_NODE_POOL_SIZE];
 JSON jsonNodePool[JSON_NODE_POOL_SIZE];
-JSON *jsonArrayPool[JSON_ARRAY_POOL_SIZE];
 
 WebThings::WebThings()
 {
     AvlNode::initialise_pool(&(avlNodePool[0]), AVL_NODE_POOL_SIZE);
     JSON::initialise_json_pool(&(jsonNodePool[0]), JSON_NODE_POOL_SIZE);
-    JSON::initialise_array_pool(&(jsonArrayPool[0]), JSON_ARRAY_POOL_SIZE);
 }
 
 Thing * WebThings::thing(const char *name, const char *model)

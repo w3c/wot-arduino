@@ -22,6 +22,16 @@ float AvlNode::used()
     return 100.0 * size / (1.0 * length);
 }
 
+AvlKey AvlNode::get_key()
+{
+    return key;
+}
+
+AvlValue AvlNode::get_value()
+{
+    return value;
+}
+
 // for debugging - remove to save space
 void AvlNode::print_keys(AvlNode *tree)
 {

@@ -9,12 +9,6 @@ JSON *JSON::json_pool = NULL;
 unsigned int JSON::json_pool_length = 0;
 unsigned int JSON::json_pool_size = 0;
 
-// initialise memory pool for allocating JSON arrays
-
-JSON **JSON::array_pool = NULL;
-unsigned int JSON::array_pool_length = 0;
-unsigned int JSON::array_pool_size = 0;
-
 void JSON::initialise_json_pool(JSON *buffer, unsigned int size)
 {
     json_pool = buffer;  // memory for size nodes
@@ -23,24 +17,10 @@ void JSON::initialise_json_pool(JSON *buffer, unsigned int size)
     memset(buffer, 0, size * sizeof(JSON));
 }
 
-void JSON::initialise_array_pool(JSON **buffer, unsigned int size)
-{
-    array_pool = buffer;  // memory for size nodes
-    array_pool_length = size;  // number of possible nodes
-    array_pool_size = 0;  // index for allocation next node
-    memset(buffer, 0, size * sizeof(JSON *));
-}
-
 float JSON::json_pool_used()
 {
     // return percentage of allocated nodes
     return 100.0 * json_pool_size / (1.0 * json_pool_length);
-}
-
-float JSON::array_pool_used()
-{
-    // return percentage of allocated nodes
-    return 100.0 * array_pool_size / (1.0 * array_pool_length);
 }
 
 JSON * JSON::parse(const char *src)
@@ -125,10 +105,8 @@ JSON * JSON::parse_object(Lexer *lexer)
         
         if (!value)
             break;
-        
-        object->variant.object =  AvlNode::insert_key(object->variant.object,
-            symbol, (void *)value);
             
+        object->insert_property(symbol, value);
         token = lexer->get_token();
         
         if (token == Object_stop_token)
@@ -146,11 +124,10 @@ JSON * JSON::parse_object(Lexer *lexer)
     return null;
 }
 
-
 JSON * JSON::parse_array(Lexer *lexer)
 {
-    JSON *array = new_array(), **p;
-    int count = 0;
+    JSON *array = new_array();
+    unsigned int index = 0;
     
     if (lexer->end_of_array())
         return array;  // empty array
@@ -159,27 +136,18 @@ JSON * JSON::parse_array(Lexer *lexer)
     {
         JSON *item = parse_private(lexer);
     
-        if (!item)
+        if (item)
+            array->insert_array_item(index++, item);
+        else
         {
             cout << "missing array item\n";
             break;
         }
-        
-        p = new_array_item(item);
-        
-        if (!p)
-            break;
-            
-        if (count++ == 0)
-            array->variant.array = p;
-        
+ 
         Json_Token token = lexer->get_token();
         
         if (token == Array_stop_token)
-        {
-            new_array_item(null);
             return array;
-        }
             
         if (token != Comma_token)
             break;
@@ -203,47 +171,40 @@ void JSON::print_string(const unsigned char *name, unsigned int length)
 
 void JSON::print_name_value(AvlKey key, AvlValue value, void *context)
 {
-    cout << "  " << key << " : ";
+    cout << "  " << (-key) << " : ";
     ((JSON *)value)->print();
-    cout << ",";
+    
+    if ((void *)value != context)
+        cout << ",";
 }
 
-void JSON::print_array()
+void JSON::print_array_item(AvlKey key, AvlValue value, void *context)
 {
-    JSON *item, **p = this->variant.array;
+    ((JSON *)value)->print();
     
-    if (!p)
-    {
-        cout << "[ ]";
-        return;
-    }
-    
-    cout << "[ ";
-    
-    while (*p)
-    {
-        item = *p++;
-        item->print();
-        
-        if (*p)
-            cout << ", ";
-    }
-    
-    cout << "]";
+    if ((void *)value != context)
+        cout << ",";
 }
 
 void JSON::print()
 {
+    AvlNode *last;
+    
     switch (this->tag)
     {
         case Object_t:
             cout << " { ";
-            AvlNode::apply(this->variant.object, (AvlApplyFn)print_name_value, null);
+            AvlNode::apply(this->variant.object, (AvlApplyFn)print_name_value,
+                 (JSON *)(AvlNode::last(this->variant.object))->get_value());
             cout << " } ";
             break;
             
         case Array_t:
-            print_array();
+            last = AvlNode::last(this->variant.object);
+            cout << " [ ";
+            AvlNode::apply(this->variant.object, (AvlApplyFn)print_array_item,
+                 (JSON *)(AvlNode::last(this->variant.object))->get_value());
+            cout << "] ";
             break;
             
         case String_t:
@@ -283,19 +244,6 @@ JSON * JSON::new_node()
     }
     
     return node;
-}
-
-// allocate array item from fixed memory pool
-// allow for null pointer to mark end of array
-JSON ** JSON::new_array_item(JSON *item)
-{
-    if (array_pool && (array_pool_size < array_pool_length - 1 || !item))
-    {
-        array_pool[array_pool_size] = item;
-        return array_pool + array_pool_size++;
-    }
-
-    return null;
 }
 
 JSON * JSON::new_float(float n)
@@ -399,7 +347,7 @@ JSON * JSON::new_array()
     if (node)
     {
         node->tag = Array_t;
-        node->variant.array = null;
+        node->variant.object = null;
     }
     
     return node;
@@ -407,21 +355,43 @@ JSON * JSON::new_array()
 
 Json_Tag JSON::json_type()
 {
-    return this->tag;
+    return tag;
 }
 
-void JSON::insert(unsigned int symbol, JSON *value)
+JSON * JSON::retrieve_property(unsigned int symbol)
 {
-    if (this->tag == Object_t)
-        this->variant.object = AvlNode::insert_key(this->variant.object, symbol, value);
-}
-
-JSON * JSON::retrieve(unsigned int symbol)
-{
-    if (this->tag == Object_t)
-        return (JSON *)AvlNode::find_key(this->variant.object, (AvlKey)symbol);
+    AvlKey key = - (int)symbol;
+    
+    if (tag == Object_t)
+        return (JSON *)AvlNode::find_key(variant.object, key);
         
     return null;
+}
+
+JSON * JSON::retrieve_array_item(unsigned int index)
+{
+    AvlKey key = (int)index;
+
+    if (tag == Array_t)
+        return (JSON *)AvlNode::find_key(variant.object, key);
+        
+    return null;
+}
+
+void JSON::insert_property(unsigned int symbol, JSON *value)
+{
+    AvlKey key = - (int)symbol;
+    
+    if (tag == Object_t)
+        variant.object =  AvlNode::insert_key(variant.object, key, (void *)value);
+}
+
+void JSON::insert_array_item(unsigned int index, JSON *value)
+{
+    AvlKey key = (int)index;
+    
+    if (tag == Array_t)
+        variant.object =  AvlNode::insert_key(variant.object, key, (void *)value);
 }
 
 boolean JSON::Lexer::end_of_array()
