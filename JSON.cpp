@@ -33,7 +33,6 @@ JSON * JSON::parse(const char *src, unsigned int length)
     Lexer lexer;
     lexer.src = (unsigned char *)src;
     lexer.length = length;
-    lexer.symcount = 10;
     cout << "parsing " << src << "\n";
     return parse_private(&lexer);
 }
@@ -82,6 +81,7 @@ JSON * JSON::parse_private(Lexer *lexer)
 
 JSON * JSON::parse_object(Lexer *lexer)
 {
+    unsigned int symcount = JSON_SYMBOL_BASE;
     JSON *object = new_object();
     Json_Token token = lexer->get_token();
     
@@ -94,7 +94,7 @@ JSON * JSON::parse_object(Lexer *lexer)
             break;
             
         unsigned int symbol = lexer->table.get_symbol(lexer->token_src,
-                                        lexer->token_len, &lexer->symcount);
+                                        lexer->token_len, &symcount);
                                         
         token = lexer->get_token();
         
@@ -188,9 +188,7 @@ void JSON::print_array_item(AvlKey key, AvlValue value, void *context)
 
 void JSON::print()
 {
-    AvlNode *last;
-    
-    switch (this->tag)
+    switch (get_tag())
     {
         case Object_t:
             cout << " { ";
@@ -200,7 +198,6 @@ void JSON::print()
             break;
             
         case Array_t:
-            last = AvlNode::last(this->variant.object);
             cout << " [ ";
             AvlNode::apply(this->variant.object, (AvlApplyFn)print_array_item,
                  (JSON *)(AvlNode::last(this->variant.object))->get_value());
@@ -208,7 +205,7 @@ void JSON::print()
             break;
             
         case String_t:
-            print_string(this->variant.str, this->token_len);
+            print_string(variant.str, get_str_length());
             break;
             
         case Unsigned_t:
@@ -228,6 +225,8 @@ void JSON::print()
         case Null_t:
             cout << " null ";
             break;
+        case Unused_t:
+            break;  // nothing to do
     }
 }
 
@@ -239,7 +238,7 @@ JSON * JSON::new_node()
     if (json_pool && json_pool_size < json_pool_length)
     {
         node = json_pool + json_pool_size++;
-        node->tag = Null_t;
+        node->set_tag(Null_t);
         node->variant.number = 0.0;
     }
     
@@ -252,7 +251,7 @@ JSON * JSON::new_float(float n)
     
     if (node)
     {
-        node->tag = Float_t;
+        node->set_tag(Float_t);
         node->variant.number = n;
     }
     
@@ -265,7 +264,7 @@ JSON * JSON::new_unsigned(unsigned int n)
     
     if (node)
     {
-        node->tag = Unsigned_t;
+        node->set_tag(Unsigned_t);
         node->variant.u = n;
     }
     
@@ -278,7 +277,7 @@ JSON * JSON::new_signed(int n)
     
     if (node)
     {
-        node->tag = Signed_t;
+        node->set_tag(Signed_t);
         node->variant.i = n;
     }
     
@@ -291,7 +290,7 @@ JSON * JSON::new_boolean(bool value)
     
     if (node)
     {
-        node->tag = Boolean_t;
+        node->set_tag(Boolean_t);
         node->variant.truth = value;
     }
     
@@ -304,7 +303,7 @@ JSON * JSON::new_null()
     
     if (node)
     {
-        node->tag = Null_t;
+        node->set_tag(Null_t);
     }
     
     return node;
@@ -316,9 +315,9 @@ JSON * JSON::new_string(unsigned char *str, unsigned int length)
     
     if (node)
     {
-        node->tag = String_t;
+        node->set_tag(String_t);
         node->variant.str = str;
-        node->token_len = length;
+        node->set_str_length(length);
     }
     
     return node;
@@ -331,7 +330,7 @@ JSON * JSON::new_object()
     
     if (node)
     {
-        node->tag = Object_t;
+        node->set_tag(Object_t);
         node->variant.object = null;
     }
     
@@ -346,7 +345,7 @@ JSON * JSON::new_array()
     
     if (node)
     {
-        node->tag = Array_t;
+        node->set_tag(Array_t);
         node->variant.object = null;
     }
     
@@ -355,14 +354,35 @@ JSON * JSON::new_array()
 
 Json_Tag JSON::json_type()
 {
-    return tag;
+    return get_tag();
+}
+
+Json_Tag JSON::get_tag()
+{
+    return (Json_Tag)(taglen & 31);
+}
+
+void JSON::set_tag(Json_Tag tag)
+{
+    taglen &= ~31;
+    taglen |= (unsigned int)tag;
+}
+void JSON::set_str_length(unsigned int length)
+{
+    taglen &= 31;
+    taglen |= (length << 5);
+}
+
+unsigned int JSON::get_str_length()
+{
+    return taglen >> 5;
 }
 
 JSON * JSON::retrieve_property(unsigned int symbol)
 {
     AvlKey key = - (int)symbol;
     
-    if (tag == Object_t)
+    if (get_tag() == Object_t)
         return (JSON *)AvlNode::find_key(variant.object, key);
         
     return null;
@@ -372,7 +392,7 @@ JSON * JSON::retrieve_array_item(unsigned int index)
 {
     AvlKey key = (int)index;
 
-    if (tag == Array_t)
+    if (get_tag() == Array_t)
         return (JSON *)AvlNode::find_key(variant.object, key);
         
     return null;
@@ -382,7 +402,7 @@ void JSON::insert_property(unsigned int symbol, JSON *value)
 {
     AvlKey key = - (int)symbol;
     
-    if (tag == Object_t)
+    if (get_tag() == Object_t)
         variant.object =  AvlNode::insert_key(variant.object, key, (void *)value);
 }
 
@@ -390,7 +410,7 @@ void JSON::insert_array_item(unsigned int index, JSON *value)
 {
     AvlKey key = (int)index;
     
-    if (tag == Array_t)
+    if (get_tag() == Array_t)
         variant.object =  AvlNode::insert_key(variant.object, key, (void *)value);
 }
 

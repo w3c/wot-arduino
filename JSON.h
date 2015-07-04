@@ -9,11 +9,17 @@
 
 using namespace std;  // for string and memset
 
-enum Json_Tag { Object_t, Array_t, String_t, Unsigned_t, Signed_t, Float_t, Boolean_t, Null_t };
+
+enum Json_Tag { Unused_t, // used to identify unused JSON nodes
+        Object_t, Array_t, String_t, Unsigned_t,
+        Signed_t, Float_t, Boolean_t, Null_t };
 
 enum Json_Token {Error_token, String_token, Colon_token, Comma_token,
         Object_start_token, Object_stop_token, Array_start_token, Array_stop_token,
         Float_token, Unsigned_token, Signed_token, Null_token, True_token, False_token};
+        
+        
+#define JSON_SYMBOL_BASE 10
 
 class JSON
 {
@@ -49,7 +55,6 @@ class JSON
         {
             public:
                 HashTable table;
-                unsigned int symcount;
                 unsigned char *src;
                 unsigned int length;
                 unsigned char *token_src;
@@ -75,11 +80,16 @@ class JSON
         static JSON * parse_object(Lexer *lexer);
         static JSON * parse_array(Lexer *lexer);
         
-        // to reduce the size of JSON Nodes we could get creative &
-        // combine the tag and string token length into a uint16_t
-        // using special getter and setter methods to hide this
-        Json_Tag tag;
-        unsigned int token_len; // used for string lengths
+        // to reduce the size of JSON Nodes we combine the tag
+        // and string token length into a uint16_t relying on
+        // special getter and setter methods to hide this
+
+        Json_Tag get_tag();
+        void set_tag(Json_Tag tag);
+        void set_str_length(unsigned int length);
+        unsigned int get_str_length();
+        
+        uint16_t taglen;  // composite field for tag and string length
         
         union js_union
         {
