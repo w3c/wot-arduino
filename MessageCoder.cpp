@@ -46,7 +46,6 @@
 
 #include <stdint.h>
 #include <Arduino.h>
-#include "Arduino.h"
 #include "MessageCoder.h"
 
 void MessageBuffer::set_buffer(unsigned char *buf, unsigned len)

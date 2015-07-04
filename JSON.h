@@ -95,7 +95,7 @@ class JSON
             unsigned int u;
             int i;
             boolean truth;
-            AvlNode *object;
+            AvlIndex object;
         } variant;
 };
 

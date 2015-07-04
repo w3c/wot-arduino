@@ -60,8 +60,8 @@ int main ()
     
     //MessageCoder coder;
     //coder.test();
-    
-    const char *test = "[ \"hello\", [null]]";
+   
+    const char *test = "{\"a\":true}";  //[true]"; //"[ \"hello\", [null]]";
     
     JSON *json = JSON::parse(test);
     
@@ -81,16 +81,16 @@ int main ()
     PRINT("JSON Pool is using ");
     PRINT(JSON::json_pool_used());
     PRINTLN("% of available nodes");
-/*    
+
     cout << "test of AVL trees\n";
-    AvlNode *tree = null;
+    AvlIndex tree = AVL_NULL;
     
-    tree = AvlNode::avlInsertKey(tree, 5, null);
-    tree = AvlNode::avlInsertKey(tree, 1, null);
-    tree = AvlNode::avlInsertKey(tree, 6, null);
-    tree = AvlNode::avlInsertKey(tree, 2, null);
-    cout << "tree size = " << AvlNode::avlSize(tree) << "\n";
-    AvlNode::avlPrintKeys(tree);
+    tree = AvlNode::insert_key(tree, 5, null);
+    tree = AvlNode::insert_key(tree, 1, null);
+    tree = AvlNode::insert_key(tree, 6, null);
+    tree = AvlNode::insert_key(tree, 2, null);
+    cout << "tree size = " << AvlNode::get_size(tree) << "\n";
+    AvlNode::print_keys(tree);
 
     HashTable table;
     table.insert_key((const unsigned char *)"one", 11);
@@ -101,6 +101,6 @@ int main ()
     table.insert_key((const unsigned char *)"brave", 77);
     table.insert_key((const unsigned char *)"world", 88);
     table.print();
-*/   
+ 
     return 0;
 }

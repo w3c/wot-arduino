@@ -2,7 +2,6 @@
 
 #include <ctype.h>
 #include <Arduino.h>
-#include "Arduino.h"
 #include "AvlNode.h"
 #include "HashTable.h"
 #include "JSON.h"
@@ -197,14 +196,14 @@ void JSON::print()
         case Object_t:
             PRINT(F(" { "));
             AvlNode::apply(this->variant.object, (AvlApplyFn)print_name_value,
-                 (JSON *)(AvlNode::last(this->variant.object))->get_value());
+                 (JSON *)(AvlNode::get_node(AvlNode::last(this->variant.object)))->get_value());
             PRINT(F(" } "));
             break;
             
         case Array_t:
             PRINT(F(" [ "));
             AvlNode::apply(this->variant.object, (AvlApplyFn)print_array_item,
-                 (JSON *)(AvlNode::last(this->variant.object))->get_value());
+                 (JSON *)(AvlNode::get_node(AvlNode::last(this->variant.object)))->get_value());
             PRINT(F("] "));
             break;
             
@@ -335,7 +334,7 @@ JSON * JSON::new_object()
     if (node)
     {
         node->set_tag(Object_t);
-        node->variant.object = null;
+        node->variant.object = AVL_NULL;
     }
     
     return node;
@@ -350,7 +349,7 @@ JSON * JSON::new_array()
     if (node)
     {
         node->set_tag(Array_t);
-        node->variant.object = null;
+        node->variant.object = AVL_NULL;
     }
     
     return node;
@@ -407,7 +406,7 @@ void JSON::insert_property(unsigned int symbol, JSON *value)
     AvlKey key = - (int)symbol;
     
     if (get_tag() == Object_t)
-        variant.object =  AvlNode::insert_key(variant.object, key, (void *)value);
+        variant.object = AvlNode::insert_key(variant.object, key, (void *)value);
 }
 
 void JSON::insert_array_item(unsigned int index, JSON *value)

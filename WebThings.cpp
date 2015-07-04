@@ -16,6 +16,22 @@ WebThings::WebThings()
 {
     AvlNode::initialise_pool(&(avlNodePool[0]), AVL_NODE_POOL_SIZE);
     JSON::initialise_json_pool(&(jsonNodePool[0]), JSON_NODE_POOL_SIZE);
+    
+    PRINT(F("avl node size: "));
+    PRINT((sizeof(AvlNode)));
+    PRINTLN(F(" bytes"));
+    
+    PRINT(F("json node size: "));
+    PRINT((sizeof(JSON)));
+    PRINTLN(F(" bytes"));
+    
+    PRINT(F("avl pool size: "));
+    PRINT((AVL_NODE_POOL_SIZE * sizeof(AvlNode)));
+    PRINTLN(F(" bytes"));
+    
+    PRINT(F("json pool size: "));
+    PRINT((JSON_NODE_POOL_SIZE * sizeof(JSON)));
+    PRINTLN(F(" bytes"));
 }
 
 Thing * WebThings::thing(const char *name, const char *model)
