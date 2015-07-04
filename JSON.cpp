@@ -359,23 +359,23 @@ Json_Tag JSON::json_type()
 
 Json_Tag JSON::get_tag()
 {
-    return (Json_Tag)(taglen & 31);
+    return (Json_Tag)(taglen & 15);
 }
 
 void JSON::set_tag(Json_Tag tag)
 {
-    taglen &= ~31;
+    taglen &= ~15;
     taglen |= (unsigned int)tag;
 }
 void JSON::set_str_length(unsigned int length)
 {
-    taglen &= 31;
-    taglen |= (length << 5);
+    taglen &= 15;
+    taglen |= (length << 4);
 }
 
 unsigned int JSON::get_str_length()
 {
-    return taglen >> 5;
+    return taglen >> 4;
 }
 
 JSON * JSON::retrieve_property(unsigned int symbol)
