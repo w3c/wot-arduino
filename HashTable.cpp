@@ -1,5 +1,6 @@
 /* simple fixed size hashtable with no chaining for use on constrained devices */
 
+#include <Arduino.h>
 #include "HashTable.h"
 
 HashTable::HashTable()
@@ -16,14 +17,14 @@ float HashTable::used()
 
 void HashTable::print()
 {
-    cout << "table has " << entries << " entries, " << used() << "% full\n";
+    PRINT("table has "); PRINT(entries); PRINT(" entries, "); PRINT(used()); PRINTLN("% full\n");
     for (int i = HASH_TABLE_SIZE; i > 0; )
     {
         HashEntry *entry = table + (--i);
         
         if (entry->key)
         {
-            cout << "  " << entry-> key << " : " << entry->value << "\n";
+            PRINT("  "); PRINT(entry->key); PRINT(" : "); PRINTLN(entry->value);
         }
     }
 }

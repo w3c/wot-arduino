@@ -1,18 +1,16 @@
 /* demo code for Web of Things Framework for Arduino */
 
-#include <iostream>
-
-using namespace std;
-
-#include "WebThings.h"
+#include <Arduino.h>
+#include "AvlNode.h"
+#include "HashTable.h"
 #include "JSON.h"
-#include "MessageCoder.h"
+#include "WebThings.h"
 
 int main ()
 {
     WebThings wot;
     
-    cout << "started server\n\n";
+    PRINTLN("started server\n");
     
     const char *agent_model =
         "{"
@@ -67,17 +65,22 @@ int main ()
     
     JSON *json = JSON::parse(test);
     
-    cout << "parsing complete\n";
+    PRINTLN("parsing complete");
     
     if (json)
         json->print();
     else
-        cout << "undefined";
+        PRINT("undefined");
         
-    cout << "\n";
+    PRINT("\n");
     
-    cout << "AVL Pool is using " << AvlNode::used() << "% of available nodes\n";
-    cout << "JSON Pool is using " << JSON::json_pool_used() << "% of available nodes\n";
+    PRINT("AVL Pool is using ");
+    PRINT(AvlNode::used());
+    PRINTLN("% of available nodes");
+    
+    PRINT("JSON Pool is using ");
+    PRINT(JSON::json_pool_used());
+    PRINTLN("% of available nodes");
 /*    
     cout << "test of AVL trees\n";
     AvlNode *tree = null;

@@ -1,9 +1,6 @@
 #ifndef _WOTF_MESSAGECODER
 #define _WOTF_MESSAGECODER
 
-#include <stdint.h>
-#include "core.h"
-
 // unsigned char tag codes
 
 #define WOT_END_OBJECT 0

@@ -44,9 +44,9 @@
     grained time will be needed for machine control applications.
 */
 
-#include <iostream>
-using namespace std;
-
+#include <stdint.h>
+#include <Arduino.h>
+#include "Arduino.h"
 #include "MessageCoder.h"
 
 void MessageBuffer::set_buffer(unsigned char *buf, unsigned len)
@@ -118,7 +118,7 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
     unsigned int c;
     unsigned char *s;
     
-    cout << "start object\n";
+    PRINTLN("start object");
     
     for (;;)
     {
@@ -132,11 +132,11 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
             
             if (c)
             {
-                cout << "unterminated string\n";
+                PRINTLN("unterminated string");
                 return false;
             }
             else 
-                cout << "string \""; cout << s; cout << "\" :\n";
+                PRINT("string \""); PRINT(s); PRINTLN("\" :");
         
             // get value
             
@@ -146,7 +146,9 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
         else if (WOT_SYM_BASE <= c && c < 256)
         {
             c = c - WOT_SYM_BASE;
-            cout << "symbol "; cout << c; cout << " :\n";
+            PRINT("symbol ");
+            PRINT(c);
+            PRINT(" :\n");
         
             // get value
             
@@ -159,12 +161,12 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
         }
         else
         {
-            cout << "didn't find string or symbol for object property name";
+            PRINT("didn't find string or symbol for object property name");
             return false;
         }
     }
     
-    cout << "end object\n";
+    PRINTLN("end object");
     return true;
 }
 
@@ -172,7 +174,7 @@ boolean MessageCoder::decode_array(MessageBuffer *buffer)
 {
     unsigned int c;
     
-    cout << "start array\n";
+    PRINTLN("start array");
     
     for (;;)
     {
@@ -183,7 +185,7 @@ boolean MessageCoder::decode_array(MessageBuffer *buffer)
             
         if (c == WOT_END_OBJECT)
         {
-            cout << "found unexpected end of object\n";
+            PRINTLN("found unexpected end of object");
             return false;
         }
             
@@ -191,7 +193,7 @@ boolean MessageCoder::decode_array(MessageBuffer *buffer)
             return false;
     }
     
-    cout << "end array\n";
+    PRINTLN("end array");
     return true;
 }
 
@@ -214,24 +216,30 @@ boolean MessageCoder::decode(MessageBuffer *buffer)
             
             if (c)
             {
-                cout << "unterminated string\n";
+                PRINTLN("unterminated string");
                 return false;
             }
             else
-                cout << "string \"" << s << "\"\n";
+            {
+                PRINT("string \"");
+                PRINT(s);
+                PRINTLN("\"");
+            }
             break;
         }
 
         case WOT_UNSIGNED_INT_8:
             c = buffer->get_byte();
-            cout << "unsigned 8 bit integer " << c << "\n";
+            PRINT("unsigned 8 bit integer ");
+            PRINTLN(c);
             break;
     
         case WOT_SIGNED_INT_8:
         {
             c = buffer->get_byte();
             uint16_t i = (uint16_t)c;
-            cout << "signed 8 bit integer " << i << "\n";
+            PRINT("signed 8 bit integer ");
+            PRINTLN(i);
             break;
         }
         
@@ -257,9 +265,15 @@ boolean MessageCoder::decode(MessageBuffer *buffer)
             }
             
             if (c == WOT_UNSIGNED_INT_16)
-                cout << "unsigned 16 bit integer " << num.u << "\n";
+            {
+                PRINT("unsigned 16 bit integer ");
+                PRINTLN(num.u);
+            }
             else
-                cout << "signed 16 bit integer " << num.i << "\n";
+            {
+                PRINT("signed 16 bit integer ");
+                PRINTLN(num.i);
+            }
             break;
         }
     
@@ -291,50 +305,58 @@ boolean MessageCoder::decode(MessageBuffer *buffer)
             }
 
             if (c == WOT_UNSIGNED_INT_32)
-                cout << "unsigned 32 bit integer " << num.u << "\n";
+            {
+                PRINT("unsigned 32 bit integer ");
+                PRINTLN(num.u);
+            }
             else if (c == WOT_SIGNED_INT_32)
-                cout << "signed 32 bit integer " << num.i << "\n";
+            {
+                PRINT("signed 32 bit integer ");
+                PRINTLN(num.i);
+            }
             else
             {
-                cout.precision(7);
-                cout << "float " << num.x << "\n";
+                PRINT("float ");
+                PRINTLN(num.x);
             }
             break;
         }
         
         case WOT_VALUE_NULL:
-            cout << "null\n";
+            PRINTLN("null");
             break;
         
         case WOT_VALUE_TRUE:
-            cout << "true\n";
+            PRINTLN("true");
             break;
         
         case WOT_VALUE_FALSE:
-            cout << "false\n";
+            PRINTLN("false");
             break;
         
         default:
         {
             if (WOT_RESERVED_START <= c && c <= WOT_RESRVED_END)
             {
-                cout << "illegal use of reserved tag";
+                PRINTLN("illegal use of reserved tag");
                 return false;
             }
             else if (WOT_NUM_BASE <= c && c < WOT_SYM_BASE)
             {
                 uint16_t u = c - WOT_NUM_BASE;
-                cout << "unsigned 4 bit integer " << u << "\n";
+                PRINT("unsigned 4 bit integer ");
+                PRINTLN(u);
 
             }
             else if (WOT_SYM_BASE <= c && c < 256)
             {
                 c -= WOT_SYM_BASE;
-                cout << "symbol " << c << "\n";
+                PRINT("symbol ");
+                PRINTLN(c);;
             }
             else // unexpected end of buffer
             {
-                cout << "unexpectedly reached end of buffer\n";
+                PRINTLN("unexpectedly reached end of buffer");
                 return false;
             }
         }
@@ -491,7 +513,7 @@ void MessageCoder::encode_symbol(MessageBuffer *buffer, unsigned int sym)
 {
     if (sym > 200)
     {
-        cout << "symbol out of range";   
+        PRINTLN("symbol out of range");   
     }
     else
     {
@@ -556,16 +578,16 @@ void MessageCoder::test()
     unsigned char buffer[WOT_MESSAGE_LENGTH];
     const float PI = 3.1415926;
     
-    cout << "int has " << sizeof(int) << " bytes\n";
-    cout << "long has " << sizeof(long) << " bytes\n";
-    cout << "float has " << sizeof(float) << " bytes\n";
-    cout << "double has " << sizeof(double) << " bytes\n";
+    PRINT("int has "); PRINT(sizeof(int)); PRINTLN(" bytes");
+    PRINT("long has "); PRINT(sizeof(long)); PRINTLN(" bytes");
+    PRINT("float has "); PRINT(sizeof(float)); PRINTLN(" bytes");
+    PRINT("double has "); PRINT(sizeof(double)); PRINTLN(" bytes\n");
     
     membuf.set_buffer(&buffer[0], WOT_MESSAGE_LENGTH);
 
     coder.encode_string(&membuf, (unsigned char *)"hello world");
-    cout << "used " << membuf.get_size() << " bytes\n";
-    cout << "overflowed: " << (membuf.overflowed() ? "true" : "false") << "\n";
+    PRINT("used "); PRINT(membuf.get_size()); PRINTLN(" bytes");
+    PRINT("overflowed: "); PRINTLN((membuf.overflowed() ? "true" : "false"));
 
     coder.decode(&membuf);
     
@@ -590,8 +612,8 @@ void MessageCoder::test()
     coder.encode_float(&membuf, (float)PI);
     coder.encode_array_end(&membuf);
     
-    cout << "used " << membuf.get_size() << " bytes\n";
-    cout << "overflowed: " << (membuf.overflowed() ? "true" : "false") << "\n";
+    PRINT("used "); PRINTLN(membuf.get_size()); PRINTLN(" bytes");
+    PRINT("overflowed: "); PRINTLN((membuf.overflowed() ? "true" : "false"));
 
     coder.decode(&membuf);
     

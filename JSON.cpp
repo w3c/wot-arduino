@@ -1,6 +1,10 @@
 /* Minimal JSON support for Arduino */
 
 #include <ctype.h>
+#include <Arduino.h>
+#include "Arduino.h"
+#include "AvlNode.h"
+#include "HashTable.h"
 #include "JSON.h"
 
 // initialise memory pool for allocating JSON nodes
@@ -33,7 +37,7 @@ JSON * JSON::parse(const char *src, unsigned int length)
     Lexer lexer;
     lexer.src = (unsigned char *)src;
     lexer.length = length;
-    cout << "parsing " << src << "\n";
+    PRINT("parsing "); PRINTLN(src);
     return parse_private(&lexer);
 }
 
@@ -64,7 +68,7 @@ JSON * JSON::parse_private(Lexer *lexer)
         case Signed_token:
             return new_signed(lexer->signed_num);
         default:
-            cout << "JSON syntax error\n";
+            PRINTLN("JSON syntax error");
             return null;
     }
     
@@ -72,7 +76,7 @@ JSON * JSON::parse_private(Lexer *lexer)
     
     if (token != Error_token)
     {
-        cout << "JSON syntax error\n";
+        PRINTLN("JSON syntax error");
         return null;
     }
 
@@ -120,7 +124,7 @@ JSON * JSON::parse_object(Lexer *lexer)
     
     // free incomplete object here along with its map from symbols to values
     
-    cout << "JSON syntax error in object, token is " << token << "\n";
+    PRINT("JSON syntax error in object, token is "); PRINTLN(token);
     return null;
 }
 
@@ -140,7 +144,7 @@ JSON * JSON::parse_array(Lexer *lexer)
             array->insert_array_item(index++, item);
         else
         {
-            cout << "missing array item\n";
+            PRINTLN("missing array item");
             break;
         }
  
@@ -153,7 +157,7 @@ JSON * JSON::parse_array(Lexer *lexer)
             break;
     }
     
-    cout << "JSON syntax error in array\n";
+    PRINTLN("JSON syntax error in array");
     return null;
 }
 
@@ -161,21 +165,21 @@ void JSON::print_string(const unsigned char *name, unsigned int length)
 {
     int i;
     
-    cout << "\"";
+    PRINT("\"");
 
     for (i = 0; i < length; ++i)
         cout << name[i];
         
-    cout << "\"";
+    PRINT("\"");
 }
 
 void JSON::print_name_value(AvlKey key, AvlValue value, void *context)
 {
-    cout << "  " << (-key) << " : ";
+    PRINT("  "); PRINT((-key)); PRINT(" : ");
     ((JSON *)value)->print();
     
     if ((void *)value != context)
-        cout << ",";
+        PRINT(",");
 }
 
 void JSON::print_array_item(AvlKey key, AvlValue value, void *context)
@@ -183,7 +187,7 @@ void JSON::print_array_item(AvlKey key, AvlValue value, void *context)
     ((JSON *)value)->print();
     
     if ((void *)value != context)
-        cout << ",";
+        PRINT(",");
 }
 
 void JSON::print()
@@ -191,17 +195,17 @@ void JSON::print()
     switch (get_tag())
     {
         case Object_t:
-            cout << " { ";
+            PRINT(" { ");
             AvlNode::apply(this->variant.object, (AvlApplyFn)print_name_value,
                  (JSON *)(AvlNode::last(this->variant.object))->get_value());
-            cout << " } ";
+            PRINT(" } ");
             break;
             
         case Array_t:
-            cout << " [ ";
+            PRINT(" [ ");
             AvlNode::apply(this->variant.object, (AvlApplyFn)print_array_item,
                  (JSON *)(AvlNode::last(this->variant.object))->get_value());
-            cout << "] ";
+            PRINT("] ");
             break;
             
         case String_t:
@@ -219,11 +223,11 @@ void JSON::print()
             break;
                     
         case Boolean_t:
-            cout << (this->variant.truth ? " true " : " false ");
+            PRINT((this->variant.truth ? " true " : " false "));
             break;
             
         case Null_t:
-            cout << " null ";
+            PRINT(" null ");
             break;
         case Unused_t:
             break;  // nothing to do

@@ -1,5 +1,10 @@
 /* Web of Things Framework for Arduino */
 
+#include <stdarg.h>
+#include <Arduino.h>
+#include "AvlNode.h"
+#include "HashTable.h"
+#include "JSON.h"
 #include "WebThings.h"
 
 // static allocation of memory pools

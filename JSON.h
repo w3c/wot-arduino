@@ -3,13 +3,6 @@
 #ifndef _WOTF_JSON
 #define _WOTF_JSON
 
-#include "core.h"
-#include "AvlNode.h"
-#include "HashTable.h"
-
-using namespace std;  // for string and memset
-
-
 enum Json_Tag { Unused_t, // used to identify unused JSON nodes
         Object_t, Array_t, String_t, Unsigned_t,
         Signed_t, Float_t, Boolean_t, Null_t };

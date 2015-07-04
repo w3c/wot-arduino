@@ -3,9 +3,6 @@
 #ifndef _WOTF_FRAMEWORK
 #define _WOTF_FRAMEWORK
 
-#include <stdarg.h>
-#include "JSON.h"
-
 class Thing; // forward reference
 
 typedef void *Any;

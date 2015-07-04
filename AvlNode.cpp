@@ -1,5 +1,6 @@
 /* AvlTrees - a variant on balanced binary trees */
 
+#include <Arduino.h>
 #include "AvlNode.h"
 
 #define MAX(x, y) (((x) > (y))?(x):(y))
@@ -38,7 +39,7 @@ void AvlNode::print_keys(AvlNode *tree)
     if (tree)
     {
         print_keys(tree->left);
-        cout << "  " << tree->key << "\n";
+        PRINT("  "); PRINTLN(tree->key);
         print_keys(tree->right);
     }
 }
@@ -124,11 +125,6 @@ int AvlNode::tree_height(AvlNode *tree)
 int AvlNode::node_height(AvlNode *node)
 {
     return (node ? node->height : 0);
-}
-
-int max(int x, int y)
-{
-    return (x > y ? x : y);
 }
 
 // rebalancing operations from wikipedia diagram
