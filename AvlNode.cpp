@@ -39,7 +39,7 @@ void AvlNode::print_keys(AvlNode *tree)
     if (tree)
     {
         print_keys(tree->left);
-        PRINT("  "); PRINTLN(tree->key);
+        PRINT(F("  ")); PRINTLN(tree->key);
         print_keys(tree->right);
     }
 }

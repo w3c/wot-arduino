@@ -118,7 +118,7 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
     unsigned int c;
     unsigned char *s;
     
-    PRINTLN("start object");
+    PRINTLN(F("start object"));
     
     for (;;)
     {
@@ -132,11 +132,11 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
             
             if (c)
             {
-                PRINTLN("unterminated string");
+                PRINTLN(F("unterminated string"));
                 return false;
             }
             else 
-                PRINT("string \""); PRINT(s); PRINTLN("\" :");
+                PRINT(F("string \"")); PRINT((const char *)s); PRINTLN(F("\" :"));
         
             // get value
             
@@ -146,9 +146,9 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
         else if (WOT_SYM_BASE <= c && c < 256)
         {
             c = c - WOT_SYM_BASE;
-            PRINT("symbol ");
+            PRINT(F("symbol "));
             PRINT(c);
-            PRINT(" :\n");
+            PRINT(F(" :\n"));
         
             // get value
             
@@ -161,12 +161,12 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
         }
         else
         {
-            PRINT("didn't find string or symbol for object property name");
+            PRINT(F("didn't find string or symbol for object property name"));
             return false;
         }
     }
     
-    PRINTLN("end object");
+    PRINTLN(F("end object"));
     return true;
 }
 
@@ -174,7 +174,7 @@ boolean MessageCoder::decode_array(MessageBuffer *buffer)
 {
     unsigned int c;
     
-    PRINTLN("start array");
+    PRINTLN(F("start array"));
     
     for (;;)
     {
@@ -185,7 +185,7 @@ boolean MessageCoder::decode_array(MessageBuffer *buffer)
             
         if (c == WOT_END_OBJECT)
         {
-            PRINTLN("found unexpected end of object");
+            PRINTLN(F("found unexpected end of object"));
             return false;
         }
             
@@ -193,7 +193,7 @@ boolean MessageCoder::decode_array(MessageBuffer *buffer)
             return false;
     }
     
-    PRINTLN("end array");
+    PRINTLN(F("end array"));
     return true;
 }
 
@@ -216,21 +216,21 @@ boolean MessageCoder::decode(MessageBuffer *buffer)
             
             if (c)
             {
-                PRINTLN("unterminated string");
+                PRINTLN(F("unterminated string"));
                 return false;
             }
             else
             {
-                PRINT("string \"");
-                PRINT(s);
-                PRINTLN("\"");
+                PRINT(F("string \""));
+                PRINT((const char *)s);
+                PRINTLN(F("\""));
             }
             break;
         }
 
         case WOT_UNSIGNED_INT_8:
             c = buffer->get_byte();
-            PRINT("unsigned 8 bit integer ");
+            PRINT(F("unsigned 8 bit integer "));
             PRINTLN(c);
             break;
     
@@ -238,7 +238,7 @@ boolean MessageCoder::decode(MessageBuffer *buffer)
         {
             c = buffer->get_byte();
             uint16_t i = (uint16_t)c;
-            PRINT("signed 8 bit integer ");
+            PRINT(F("signed 8 bit integer "));
             PRINTLN(i);
             break;
         }
@@ -266,12 +266,12 @@ boolean MessageCoder::decode(MessageBuffer *buffer)
             
             if (c == WOT_UNSIGNED_INT_16)
             {
-                PRINT("unsigned 16 bit integer ");
+                PRINT(F("unsigned 16 bit integer "));
                 PRINTLN(num.u);
             }
             else
             {
-                PRINT("signed 16 bit integer ");
+                PRINT(F("signed 16 bit integer "));
                 PRINTLN(num.i);
             }
             break;
@@ -306,57 +306,57 @@ boolean MessageCoder::decode(MessageBuffer *buffer)
 
             if (c == WOT_UNSIGNED_INT_32)
             {
-                PRINT("unsigned 32 bit integer ");
+                PRINT(F("unsigned 32 bit integer "));
                 PRINTLN(num.u);
             }
             else if (c == WOT_SIGNED_INT_32)
             {
-                PRINT("signed 32 bit integer ");
+                PRINT(F("signed 32 bit integer "));
                 PRINTLN(num.i);
             }
             else
             {
-                PRINT("float ");
+                PRINT(F("float "));
                 PRINTLN(num.x);
             }
             break;
         }
         
         case WOT_VALUE_NULL:
-            PRINTLN("null");
+            PRINTLN(F("null"));
             break;
         
         case WOT_VALUE_TRUE:
-            PRINTLN("true");
+            PRINTLN(F("true"));
             break;
         
         case WOT_VALUE_FALSE:
-            PRINTLN("false");
+            PRINTLN(F("false"));
             break;
         
         default:
         {
             if (WOT_RESERVED_START <= c && c <= WOT_RESRVED_END)
             {
-                PRINTLN("illegal use of reserved tag");
+                PRINTLN(F("illegal use of reserved tag"));
                 return false;
             }
             else if (WOT_NUM_BASE <= c && c < WOT_SYM_BASE)
             {
                 uint16_t u = c - WOT_NUM_BASE;
-                PRINT("unsigned 4 bit integer ");
+                PRINT(F("unsigned 4 bit integer "));
                 PRINTLN(u);
 
             }
             else if (WOT_SYM_BASE <= c && c < 256)
             {
                 c -= WOT_SYM_BASE;
-                PRINT("symbol ");
+                PRINT(F("symbol "));
                 PRINTLN(c);;
             }
             else // unexpected end of buffer
             {
-                PRINTLN("unexpectedly reached end of buffer");
+                PRINTLN(F("unexpectedly reached end of buffer"));
                 return false;
             }
         }
@@ -513,7 +513,7 @@ void MessageCoder::encode_symbol(MessageBuffer *buffer, unsigned int sym)
 {
     if (sym > 200)
     {
-        PRINTLN("symbol out of range");   
+        PRINTLN(F("symbol out of range"));   
     }
     else
     {
@@ -576,27 +576,27 @@ void MessageCoder::test()
     MessageCoder coder;
     
     unsigned char buffer[WOT_MESSAGE_LENGTH];
-    const float PI = 3.1415926;
+    const float pi = 3.1415926;
     
-    PRINT("int has "); PRINT(sizeof(int)); PRINTLN(" bytes");
-    PRINT("long has "); PRINT(sizeof(long)); PRINTLN(" bytes");
-    PRINT("float has "); PRINT(sizeof(float)); PRINTLN(" bytes");
-    PRINT("double has "); PRINT(sizeof(double)); PRINTLN(" bytes\n");
+    PRINT(F("int has ")); PRINT(sizeof(int)); PRINTLN(F(" bytes"));
+    PRINT(F("long has ")); PRINT(sizeof(long)); PRINTLN(F(" bytes"));
+    PRINT(F("float has ")); PRINT(sizeof(float)); PRINTLN(F(" bytes"));
+    PRINT(F("double has ")); PRINT(sizeof(double)); PRINTLN(F(" bytes\n"));
     
     membuf.set_buffer(&buffer[0], WOT_MESSAGE_LENGTH);
 
-    coder.encode_string(&membuf, (unsigned char *)"hello world");
-    PRINT("used "); PRINT(membuf.get_size()); PRINTLN(" bytes");
-    PRINT("overflowed: "); PRINTLN((membuf.overflowed() ? "true" : "false"));
+    coder.encode_string(&membuf, (unsigned char *)F("hello world"));
+    PRINT(F("used ")); PRINT(membuf.get_size()); PRINTLN(F(" bytes"));
+    PRINT(F("overflowed: ")); PRINTLN((membuf.overflowed() ? F("true") : F("false")));
 
     coder.decode(&membuf);
     
     membuf.set_buffer(&buffer[0], WOT_MESSAGE_LENGTH);
 
     coder.encode_array_start(&membuf);
-    coder.encode_string(&membuf, (unsigned char *)"one");
-    coder.encode_string(&membuf, (unsigned char *)"two");
-    coder.encode_string(&membuf, (unsigned char *)"three");
+    coder.encode_string(&membuf, (unsigned char *)F("one"));
+    coder.encode_string(&membuf, (unsigned char *)F("two"));
+    coder.encode_string(&membuf, (unsigned char *)F("three"));
     coder.encode_symbol(&membuf, 79);
     coder.encode_null(&membuf);
     coder.encode_true(&membuf);
@@ -609,11 +609,11 @@ void MessageCoder::test()
     coder.encode_signed16(&membuf, -320);
     coder.encode_signed16(&membuf, -32768);
     coder.encode_signed32(&membuf, 32768);
-    coder.encode_float(&membuf, (float)PI);
+    coder.encode_float(&membuf, (float)pi);
     coder.encode_array_end(&membuf);
     
-    PRINT("used "); PRINTLN(membuf.get_size()); PRINTLN(" bytes");
-    PRINT("overflowed: "); PRINTLN((membuf.overflowed() ? "true" : "false"));
+    PRINT(F("used ")); PRINTLN(membuf.get_size()); PRINTLN(F(" bytes"));
+    PRINT(F("overflowed: ")); PRINTLN((membuf.overflowed() ? F("true") : F("false")));
 
     coder.decode(&membuf);
     

@@ -17,14 +17,19 @@ float HashTable::used()
 
 void HashTable::print()
 {
-    PRINT("table has "); PRINT(entries); PRINT(" entries, "); PRINT(used()); PRINTLN("% full\n");
+    PRINT(F("table has "));
+    PRINT(entries);
+    PRINT(F(" entries, "));
+    PRINT(used());
+    PRINTLN(F("% full\n"));
+    
     for (int i = HASH_TABLE_SIZE; i > 0; )
     {
         HashEntry *entry = table + (--i);
         
         if (entry->key)
         {
-            PRINT("  "); PRINT(entry->key); PRINT(" : "); PRINTLN(entry->value);
+            PRINT("  "); PRINT((const char *)entry->key); PRINT(" : "); PRINTLN(entry->value);
         }
     }
 }

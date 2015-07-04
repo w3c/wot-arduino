@@ -3,6 +3,10 @@
 #ifndef _WOTF_AVLNODE
 #define _WOTF_AVLNODE
 
+#ifndef null
+#define null 0
+#endif
+
 typedef int AvlKey;  // a symbol or array index
 typedef void *AvlValue; // e.g. pointer to a JSON object
 typedef void (*AvlApplyFn)(AvlKey key, AvlValue value, void *data);

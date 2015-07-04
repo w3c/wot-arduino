@@ -3,6 +3,10 @@
 #ifndef _WOTF_HASHTABLE
 #define _WOTF_HASHTABLE
 
+#ifndef null
+#define null 0
+#endif
+
 // pick the table size based upon practical experience
 // call usage() method to measure how full the table is
 

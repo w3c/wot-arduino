@@ -37,7 +37,7 @@ JSON * JSON::parse(const char *src, unsigned int length)
     Lexer lexer;
     lexer.src = (unsigned char *)src;
     lexer.length = length;
-    PRINT("parsing "); PRINTLN(src);
+    PRINT(F("parsing ")); PRINTLN(src);
     return parse_private(&lexer);
 }
 
@@ -68,7 +68,7 @@ JSON * JSON::parse_private(Lexer *lexer)
         case Signed_token:
             return new_signed(lexer->signed_num);
         default:
-            PRINTLN("JSON syntax error");
+            PRINTLN(F("JSON syntax error"));
             return null;
     }
     
@@ -76,7 +76,7 @@ JSON * JSON::parse_private(Lexer *lexer)
     
     if (token != Error_token)
     {
-        PRINTLN("JSON syntax error");
+        PRINTLN(F("JSON syntax error"));
         return null;
     }
 
@@ -124,7 +124,7 @@ JSON * JSON::parse_object(Lexer *lexer)
     
     // free incomplete object here along with its map from symbols to values
     
-    PRINT("JSON syntax error in object, token is "); PRINTLN(token);
+    PRINT(F("JSON syntax error in object, token is ")); PRINTLN(token);
     return null;
 }
 
@@ -144,7 +144,7 @@ JSON * JSON::parse_array(Lexer *lexer)
             array->insert_array_item(index++, item);
         else
         {
-            PRINTLN("missing array item");
+            PRINTLN(F("missing array item"));
             break;
         }
  
@@ -157,7 +157,7 @@ JSON * JSON::parse_array(Lexer *lexer)
             break;
     }
     
-    PRINTLN("JSON syntax error in array");
+    PRINTLN(F("JSON syntax error in array"));
     return null;
 }
 
@@ -168,18 +168,18 @@ void JSON::print_string(const unsigned char *name, unsigned int length)
     PRINT("\"");
 
     for (i = 0; i < length; ++i)
-        cout << name[i];
+        PRINT(((const char)name[i]));
         
-    PRINT("\"");
+    PRINT(F("\""));
 }
 
 void JSON::print_name_value(AvlKey key, AvlValue value, void *context)
 {
-    PRINT("  "); PRINT((-key)); PRINT(" : ");
+    PRINT(F("  ")); PRINT((-key)); PRINT(F(" : "));
     ((JSON *)value)->print();
     
     if ((void *)value != context)
-        PRINT(",");
+        PRINT(F(","));
 }
 
 void JSON::print_array_item(AvlKey key, AvlValue value, void *context)
@@ -187,7 +187,7 @@ void JSON::print_array_item(AvlKey key, AvlValue value, void *context)
     ((JSON *)value)->print();
     
     if ((void *)value != context)
-        PRINT(",");
+        PRINT(F(","));
 }
 
 void JSON::print()
@@ -195,17 +195,17 @@ void JSON::print()
     switch (get_tag())
     {
         case Object_t:
-            PRINT(" { ");
+            PRINT(F(" { "));
             AvlNode::apply(this->variant.object, (AvlApplyFn)print_name_value,
                  (JSON *)(AvlNode::last(this->variant.object))->get_value());
-            PRINT(" } ");
+            PRINT(F(" } "));
             break;
             
         case Array_t:
-            PRINT(" [ ");
+            PRINT(F(" [ "));
             AvlNode::apply(this->variant.object, (AvlApplyFn)print_array_item,
                  (JSON *)(AvlNode::last(this->variant.object))->get_value());
-            PRINT("] ");
+            PRINT(F("] "));
             break;
             
         case String_t:
@@ -213,21 +213,21 @@ void JSON::print()
             break;
             
         case Unsigned_t:
-            cout << this->variant.u;
+            PRINT(this->variant.u);
             break;
         case Signed_t:
-            cout << this->variant.i;
+            PRINT(this->variant.i);
             break;
         case Float_t:
-            cout << this->variant.number;
+            PRINT(this->variant.number);
             break;
                     
         case Boolean_t:
-            PRINT((this->variant.truth ? " true " : " false "));
+            PRINT((this->variant.truth ? F(" true ") : F(" false ")));
             break;
             
         case Null_t:
-            PRINT(" null ");
+            PRINT(F(" null "));
             break;
         case Unused_t:
             break;  // nothing to do

@@ -13,6 +13,8 @@ using namespace std;
 typedef bool boolean;
 #define max(a,b) ((a)>(b)?(a):(b))
 
+#define F(x) x
+
 // these are transformed by sed script into Serial.print, etc.
 
 #define PRINT(x)   (cout << x)
