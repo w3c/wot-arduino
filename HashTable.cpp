@@ -17,7 +17,7 @@ float HashTable::used()
 
 void HashTable::print()
 {
-    PRINT(F("table has "));
+    PRINT(F("Hash table has "));
     PRINT(entries);
     PRINT(F(" entries, "));
     PRINT(used());

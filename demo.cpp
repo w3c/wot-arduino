@@ -12,7 +12,7 @@ int main ()
     
     PRINTLN("started server\n");
     
-    const char *agent_model =
+    const char *agent_model PROGMEM = 
         "{"
             "\"@properties\": {"
                 "\"door\": {"
@@ -26,7 +26,7 @@ int main ()
             "},"
         "}";
 
-    const char *door_model =
+    const char *door_model PROGMEM =
         "{"
             "\"@events\": {"
                 "\"bell\": null,"
@@ -42,7 +42,7 @@ int main ()
             "}"
         "}";
     
-    const char *light_model =
+    const char *light_model PROGMEM =
         "{"
             "\"@properties\": {"
                 "\"on\": {"
@@ -60,12 +60,33 @@ int main ()
     
     //MessageCoder coder;
     //coder.test();
+    
+    cout << "test of AVL trees\n";
+    AvlIndex tree = 0;
+    
+    tree = AvlNode::insert_key(tree, 5, null);
+    tree = AvlNode::insert_key(tree, 1, null);
+    tree = AvlNode::insert_key(tree, 6, null);
+    tree = AvlNode::insert_key(tree, 2, null);
+    cout << "tree size = " << AvlNode::get_size(tree) << "\n";
+    AvlNode::print_keys(tree);
    
+    HashTable table;
+    table.insert_key((const unsigned char *)"one", 11);
+    table.insert_key((const unsigned char *)"three", 33);
+    table.insert_key((const unsigned char *)"two", 22);
+    table.insert_key((const unsigned char *)"hello", 55);
+    table.insert_key((const unsigned char *)"mum", 66);
+    table.insert_key((const unsigned char *)"brave", 77);
+    table.insert_key((const unsigned char *)"world", 88);
+    table.print();
+
     const char *test = "{\"a\":true}";  //[true]"; //"[ \"hello\", [null]]";
     
+    PRINTLN("\ntesting JSON parser");
     JSON *json = JSON::parse(test);
     
-    PRINTLN("parsing complete");
+    PRINTLN("\nparsing complete");
     
     if (json)
         json->print();
@@ -81,26 +102,6 @@ int main ()
     PRINT("JSON Pool is using ");
     PRINT(JSON::json_pool_used());
     PRINTLN("% of available nodes");
-
-    cout << "test of AVL trees\n";
-    AvlIndex tree = AVL_NULL;
-    
-    tree = AvlNode::insert_key(tree, 5, null);
-    tree = AvlNode::insert_key(tree, 1, null);
-    tree = AvlNode::insert_key(tree, 6, null);
-    tree = AvlNode::insert_key(tree, 2, null);
-    cout << "tree size = " << AvlNode::get_size(tree) << "\n";
-    AvlNode::print_keys(tree);
-
-    HashTable table;
-    table.insert_key((const unsigned char *)"one", 11);
-    table.insert_key((const unsigned char *)"three", 33);
-    table.insert_key((const unsigned char *)"two", 22);
-    table.insert_key((const unsigned char *)"hello", 55);
-    table.insert_key((const unsigned char *)"mum", 66);
-    table.insert_key((const unsigned char *)"brave", 77);
-    table.insert_key((const unsigned char *)"world", 88);
-    table.print();
  
     return 0;
 }

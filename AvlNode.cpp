@@ -12,9 +12,12 @@ AvlNode * AvlNode::pool = 0;
 unsigned int AvlNode::length = 0;
 unsigned int AvlNode::size = 0;
 
+// index zero is used to indicate null
+// we decrement the buffer pointer so that
+// index == 1 is the first entry in the buffer
 void AvlNode::initialise_pool(AvlNode *buffer, unsigned int size)
 {
-  pool = buffer;  // memory for size nodes
+  pool = buffer - 1; // memory for size nodes
   length = size;  // number of possible nodes
   size = 0;  // index for allocation next node
 }
@@ -43,7 +46,7 @@ AvlValue AvlNode::get_value()
 // for debugging - remove to save space
 void AvlNode::print_keys(AvlIndex tree)
 {
-    if (tree != AVL_NULL)
+    if (tree)
     {
         print_keys(AVLNODE(tree)->left);
         PRINT(F("  "));
@@ -54,7 +57,7 @@ void AvlNode::print_keys(AvlIndex tree)
 
 void AvlNode::apply(AvlIndex tree, AvlApplyFn applyFn, void *data)
 {
-    if (tree != AVL_NULL)
+    if (tree)
     {
         apply(AVLNODE(tree)->left, applyFn, data);
         (*applyFn)(AVLNODE(tree)->key, AVLNODE(tree)->value, data);
@@ -64,7 +67,7 @@ void AvlNode::apply(AvlIndex tree, AvlApplyFn applyFn, void *data)
 
 unsigned int AvlNode::get_size(AvlIndex tree)
 {
-    if (tree != AVL_NULL)
+    if (tree)
         return get_size(AVLNODE(tree)->left) + 1 + get_size(AVLNODE(tree)->right);
 
     return 0;
@@ -73,17 +76,17 @@ unsigned int AvlNode::get_size(AvlIndex tree)
 // allocate node from fixed memory pool
 AvlIndex AvlNode::new_node(AvlKey key, AvlValue value)
 {
-    AvlIndex index = AVL_NULL;
+    AvlIndex index = 0;
     AvlNode *node;
     
     if (pool && size < length)
     {
-        index = size++;
+        index = ++size;
         node = AVLNODE(index);
         node->key = key;
         node->value = value;
         node->height = 1;
-        node->left = node->right = AVL_NULL;
+        node->left = node->right = 0;
     }
 
     return index;
@@ -91,7 +94,7 @@ AvlIndex AvlNode::new_node(AvlKey key, AvlValue value)
 
 AvlValue AvlNode::find_key(AvlIndex tree, AvlKey key)
 {
-    while (tree != AVL_NULL)
+    while (tree)
     {
         if (key == AVLNODE(tree)->key)
             return AVLNODE(tree)->value;
@@ -104,9 +107,9 @@ AvlValue AvlNode::find_key(AvlIndex tree, AvlKey key)
 
 AvlIndex AvlNode::first(AvlIndex tree)
 {
-    if (tree != AVL_NULL)
+    if (tree)
     {
-        while (AVLNODE(tree)->left != AVL_NULL)
+        while (AVLNODE(tree)->left)
             tree = AVLNODE(tree)->left;
     }
     return tree;
@@ -114,9 +117,9 @@ AvlIndex AvlNode::first(AvlIndex tree)
 
 AvlIndex AvlNode::last(AvlIndex tree)
 {
-    if (tree != AVL_NULL)
+    if (tree)
     {
-        while (AVLNODE(tree)->right != AVL_NULL)
+        while (AVLNODE(tree)->right)
             tree = AVLNODE(tree)->right;
     }
     
@@ -125,7 +128,7 @@ AvlIndex AvlNode::last(AvlIndex tree)
 
 int AvlNode::tree_height(AvlIndex tree)
 {
-    if (tree == AVL_NULL)
+    if (tree)
         return 0;
 
     int lh = tree_height(AVLNODE(tree)->left);
@@ -136,7 +139,7 @@ int AvlNode::tree_height(AvlIndex tree)
 
 int AvlNode::node_height(AvlIndex node)
 {
-    return (node != AVL_NULL ? AVLNODE(node)->height : 0);
+    return (node ? AVLNODE(node)->height : 0);
 }
 
 // rebalancing operations from wikipedia diagram
@@ -181,12 +184,12 @@ int AvlNode::get_balance(AvlIndex tree)
 {
     int balance = 0;
 
-    if (tree != AVL_NULL)
+    if (tree)
     {
-        if (AVLNODE(tree)->left != AVL_NULL)
+        if (AVLNODE(tree)->left)
             balance -= AVLNODE(AVLNODE(tree)->left)->height;
 
-        if (AVLNODE(tree)->right != AVL_NULL)
+        if (AVLNODE(tree)->right)
             balance += AVLNODE(AVLNODE(tree)->right)->height;
     }
 
@@ -226,7 +229,7 @@ AvlIndex AvlNode::balance(AvlIndex tree)
 
 AvlIndex AvlNode::insert_key(AvlIndex tree, AvlKey key, AvlValue value)
 {
-    if (tree == AVL_NULL)
+    if (!tree)
     {
         tree = new_node(key, value);
         return tree;
@@ -242,8 +245,8 @@ AvlIndex AvlNode::insert_key(AvlIndex tree, AvlKey key, AvlValue value)
         AVLNODE(tree)->right = insert_key(AVLNODE(tree)->right, key, value);
         tree = balance(tree);
     }
-    /* otherwise tree already has key */
-
+    
+    // tree already has key
     return tree;
 }
 

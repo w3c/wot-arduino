@@ -174,7 +174,7 @@ void JSON::print_string(const unsigned char *name, unsigned int length)
 
 void JSON::print_name_value(AvlKey key, AvlValue value, void *context)
 {
-    PRINT(F("  ")); PRINT((-key)); PRINT(F(" : "));
+    PRINT(F(" ")); PRINT((unsigned int)key); PRINT(F(" : "));
     ((JSON *)value)->print();
     
     if ((void *)value != context)
@@ -194,10 +194,10 @@ void JSON::print()
     switch (get_tag())
     {
         case Object_t:
-            PRINT(F(" { "));
+            PRINT(F(" {"));
             AvlNode::apply(this->variant.object, (AvlApplyFn)print_name_value,
                  (JSON *)(AvlNode::get_node(AvlNode::last(this->variant.object)))->get_value());
-            PRINT(F(" } "));
+            PRINT(F("} "));
             break;
             
         case Array_t:
@@ -334,7 +334,7 @@ JSON * JSON::new_object()
     if (node)
     {
         node->set_tag(Object_t);
-        node->variant.object = AVL_NULL;
+        node->variant.object = 0;
     }
     
     return node;
@@ -349,7 +349,7 @@ JSON * JSON::new_array()
     if (node)
     {
         node->set_tag(Array_t);
-        node->variant.object = AVL_NULL;
+        node->variant.object = 0;
     }
     
     return node;
@@ -383,7 +383,7 @@ unsigned int JSON::get_str_length()
 
 JSON * JSON::retrieve_property(unsigned int symbol)
 {
-    AvlKey key = - (int)symbol;
+    AvlKey key = (AvlKey)symbol + 1;
     
     if (get_tag() == Object_t)
         return (JSON *)AvlNode::find_key(variant.object, key);
@@ -393,7 +393,7 @@ JSON * JSON::retrieve_property(unsigned int symbol)
 
 JSON * JSON::retrieve_array_item(unsigned int index)
 {
-    AvlKey key = (int)index;
+    AvlKey key = (AvlKey)index + 1;
 
     if (get_tag() == Array_t)
         return (JSON *)AvlNode::find_key(variant.object, key);
@@ -403,7 +403,7 @@ JSON * JSON::retrieve_array_item(unsigned int index)
 
 void JSON::insert_property(unsigned int symbol, JSON *value)
 {
-    AvlKey key = - (int)symbol;
+    AvlKey key = (AvlKey)symbol + 1;
     
     if (get_tag() == Object_t)
         variant.object = AvlNode::insert_key(variant.object, key, (void *)value);
@@ -411,7 +411,7 @@ void JSON::insert_property(unsigned int symbol, JSON *value)
 
 void JSON::insert_array_item(unsigned int index, JSON *value)
 {
-    AvlKey key = (int)index;
+    AvlKey key = (AvlKey)index + 1;
     
     if (get_tag() == Array_t)
         variant.object =  AvlNode::insert_key(variant.object, key, (void *)value);

@@ -7,13 +7,19 @@
 #define null 0
 #endif
 
-#define AVL_NULL -1
-#define AVL_MAX_INDEX 127
+#define AVL_MAX_INDEX 255
 
-typedef int8_t AvlIndex;  // index into memory pool of AvlNodes
-typedef int8_t AvlKey;  // a symbol or array index
+typedef uint8_t AvlIndex; // index into memory pool of AvlNodes
+typedef uint8_t AvlKey;  // a symbol or array index
 typedef void *AvlValue; // e.g. pointer to a JSON object
 typedef void (*AvlApplyFn)(AvlKey key, AvlValue value, void *data);
+
+// key must be a positive integer as 0 is used to denote null
+// if at some point we want to  have arrays with both named
+// *and* numeric indices, then it will be appropriate to make
+// the key into a signed integer with negative values as
+// symbols denoting named indices, and positive values as
+// numeric indices
 
 class AvlNode
 {
