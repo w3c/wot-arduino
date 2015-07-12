@@ -2,13 +2,12 @@
 
 #include <Arduino.h>
 #include "NodePool.h"
-#include "Registry.h"
 #include "AvlNode.h"
 #include "HashTable.h"
 #include "JSON.h"
 #include "WebThings.h"
 
-void setup(Thing *thing)
+void setup(Thing *thing, HashTable *table)
 {
 }
 
@@ -92,7 +91,7 @@ int main ()
     const char *test =  "[ \"hello\", [null]]"; //"{\"a\":true}"; "[true]";
     
     PRINTLN("\ntesting JSON parser");
-    JSON *json = JSON::parse(test);
+    JSON *json = JSON::parse(test, &table);
     
     PRINTLN("\nparsing complete");
     

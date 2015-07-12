@@ -3,6 +3,8 @@
 
 #define WOT_NODE_POOL_SIZE 70
 
+typedef uint8_t NPIndex;
+
 typedef struct {
     char byte[4];
     void *pointer;

@@ -20,15 +20,16 @@ enum Json_Token {Error_token, String_token, Colon_token, Comma_token,
 class JSON; // forward reference
 
 typedef void (*GenericFn)(JSON *data);
-        
+typedef uint8_t Symbol;  // used in place of names to save memory & message size
+
 #define JSON_SYMBOL_BASE 10
 
 class JSON
 {
     public:
         static void initialise_pool(WotNodePool *wot_node_pool);
-        static JSON * parse(const char *src, unsigned int length);
-        static JSON * parse(const char *src);
+        static JSON * parse(const char *src, unsigned int length, HashTable *table);
+        static JSON * parse(const char *src, HashTable *table);
         
 #ifdef DEBUG
         static void print_string(const unsigned char *name, unsigned int length);
@@ -44,6 +45,7 @@ class JSON
         static JSON * new_string(unsigned char *str, unsigned int length);
         static JSON * new_object();
         static JSON * new_array();
+        static JSON * new_function(GenericFn func);
 
         void print();
         Json_Tag json_type();
@@ -54,12 +56,13 @@ class JSON
         void append_array_item(JSON *value);
         void insert_array_item(unsigned int index, JSON *value);
         JSON * retrieve_array_item(unsigned int index);
+        GenericFn retrieve_function(Symbol symbol);
 
     private:
         class Lexer
         {
             public:
-                HashTable table;
+                HashTable *table;
                 unsigned char *src;
                 unsigned int length;
                 unsigned char *token_src;

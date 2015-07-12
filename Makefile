@@ -16,8 +16,7 @@ test: $(OBJECTS)
 clean:
 	$(RM) $(OBJECTS) test
 
-WebThings.o: Arduino.h WebThings.h Registry.h JSON.h AvlNode.h NodePool.h
-Registry.o: Arduino.h NodePool.h WebThings.h Registry.h
+WebThings.o: Arduino.h WebThings.h JSON.h AvlNode.h NodePool.h
 NodePool.o: Arduino.h NodePool.h
 JSON.o: Arduino.h JSON.h AvlNode.h HashTable.h NodePool.h
 HashTable.o: Arduino.h HashTable.h

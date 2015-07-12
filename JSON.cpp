@@ -14,16 +14,17 @@ void JSON::initialise_pool(WotNodePool *wot_node_pool)
     node_pool = wot_node_pool;
 }
 
-JSON * JSON::parse(const char *src)
+JSON * JSON::parse(const char *src, HashTable *table)
 {
-    return parse(src, strlen(src));
+    return parse(src, strlen(src), table);
 }
 
-JSON * JSON::parse(const char *src, unsigned int length)
+JSON * JSON::parse(const char *src, unsigned int length, HashTable *table)
 {
     Lexer lexer;
     lexer.src = (unsigned char *)src;
     lexer.length = length;
+    lexer.table = table;
     
 #ifdef DEBUG
     PRINT(F("parsing ")); PRINTLN(src);
@@ -91,7 +92,7 @@ JSON * JSON::parse_object(Lexer *lexer)
         if (token != String_token)
             break;
             
-        unsigned int symbol = lexer->table.get_symbol(lexer->token_src,
+        unsigned int symbol = lexer->table->get_symbol(lexer->token_src,
                                         lexer->token_len, &symcount);
                                         
         token = lexer->get_token();
@@ -368,6 +369,19 @@ JSON * JSON::new_array()
     return node;
 }
 
+JSON * JSON::new_function(GenericFn func)
+{
+    JSON *node = JSON::new_node();
+    
+    if (node)
+    {
+        node->set_tag(Function_t);
+        node->variant.function = func;
+    }
+    
+    return node;
+}
+
 Json_Tag JSON::json_type()
 {
     return get_tag();
@@ -414,6 +428,21 @@ JSON * JSON::retrieve_array_item(unsigned int index)
     return null;
 }
 
+GenericFn JSON::retrieve_function(Symbol action)
+{
+    if (get_tag() == Object_t)
+    {
+        JSON *func = (JSON *)AvlNode::find_key(variant.object, action);
+        
+        if (func && func->get_tag() == Function_t)
+            return func->variant.function;
+    }
+    
+    return null;
+}
+
+// *** fix me to deal with updating existing values
+// *** so that we don't leak memory through lost nodes
 void JSON::insert_property(unsigned int symbol, JSON *value)
 {
     AvlKey key = (AvlKey)symbol + 1;
@@ -421,6 +450,13 @@ void JSON::insert_property(unsigned int symbol, JSON *value)
     if (get_tag() == Object_t)
         variant.object = AvlNode::insert_key(variant.object, key, (void *)value);
 }
+
+// Prepending is a lot harder and could be done
+// by appending a copy of the last node value then
+// shifting the values from one node to the next
+// in a left to right traversal, and finally
+// updating the first node. This will require a
+// special helper in the AvlNode class.
 
 void JSON::append_array_item(JSON *value)
 {
@@ -431,6 +467,8 @@ void JSON::append_array_item(JSON *value)
     }
 }
 
+// *** fix me to deal with updating existing values
+// *** so that we don't leak memory through lost nodes
 void JSON::insert_array_item(unsigned int index, JSON *value)
 {
     AvlKey key = (AvlKey)index + 1;
