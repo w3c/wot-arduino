@@ -34,6 +34,7 @@ class AvlNode
         static AvlIndex insert_key(AvlIndex tree, AvlKey key, AvlValue value);
         static AvlIndex first(AvlIndex tree);
         static AvlIndex last(AvlIndex tree);
+        static AvlKey last_key(AvlIndex tree);
         static unsigned int get_size(AvlIndex tree);
         static void apply(AvlIndex tree, AvlApplyFn applyFn, void *data);
         

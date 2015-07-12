@@ -231,6 +231,15 @@ void JSON::print()
         case Null_t:
             PRINT(F(" null "));
             break;
+            
+        case Function_t:
+            PRINT(F(" function "));
+            break;
+            
+        case Proxy_t:
+            PRINT(F(" proxy "));
+            break;
+            
         case Unused_t:
             break;  // nothing to do
     }
@@ -411,6 +420,15 @@ void JSON::insert_property(unsigned int symbol, JSON *value)
     
     if (get_tag() == Object_t)
         variant.object = AvlNode::insert_key(variant.object, key, (void *)value);
+}
+
+void JSON::append_array_item(JSON *value)
+{
+    if (get_tag() == Array_t)
+    {
+        AvlKey last = AvlNode::last_key(variant.object);
+        insert_array_item((unsigned int)last, value);
+    }
 }
 
 void JSON::insert_array_item(unsigned int index, JSON *value)

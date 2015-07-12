@@ -3,7 +3,10 @@
 #ifndef _WOTF_CORE
 #define _WOTF_CORE
 
-class Thing; // forward reference
+// forward references
+
+class Thing; 
+class JSON;
 
 typedef uint8_t Symbol;  // used in place of names to save memory & message size
 
@@ -15,6 +18,13 @@ typedef void (*EventHandler)(Symbol event, Thing *thing, Any data);
 class CoreThing
 {
     public:
+        unsigned char *uri;
+        Symbol id;
+        JSON *model;
+        JSON *events;
+        JSON *properties;
+        JSON *actions;
+        JSON *proxies;
     
         virtual void register_observer(Symbol event, EventHandler handler) = 0;
         virtual void unregister_observer(Symbol event, EventHandler handler) = 0;

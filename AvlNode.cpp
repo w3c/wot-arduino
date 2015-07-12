@@ -119,6 +119,16 @@ AvlIndex AvlNode::last(AvlIndex tree)
     return tree;
 }
 
+AvlKey AvlNode::last_key(AvlIndex tree)
+{
+    AvlIndex i = last(tree);
+    
+    if (i)
+        return AVLNODE(i)->key;
+    
+    return 0;
+}
+
 int AvlNode::tree_height(AvlIndex tree)
 {
     if (tree)

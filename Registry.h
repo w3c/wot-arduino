@@ -3,6 +3,11 @@
 
 typedef uint8_t RIndex;
 
+// forward references
+
+class Thing;
+class Proxy;
+
 // Registry of local things and proxies for remote things
 // URI strings can be held in different places
 

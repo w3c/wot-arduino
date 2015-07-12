@@ -7,14 +7,19 @@
 #define null 0
 #endif
 
+// Function and Proxy are special nodes that are used for things
 enum Json_Tag { Unused_t, // used to identify unused JSON nodes
         Object_t, Array_t, String_t, Unsigned_t,
-        Signed_t, Float_t, Boolean_t, Null_t };
+        Signed_t, Float_t, Boolean_t, Null_t,
+        Function_t, Proxy_t };
 
 enum Json_Token {Error_token, String_token, Colon_token, Comma_token,
         Object_start_token, Object_stop_token, Array_start_token, Array_stop_token,
         Float_token, Unsigned_token, Signed_token, Null_token, True_token, False_token};
         
+class JSON; // forward reference
+
+typedef void (*GenericFn)(JSON *data);
         
 #define JSON_SYMBOL_BASE 10
 
@@ -46,8 +51,9 @@ class JSON
         void insert_property(unsigned int symbol, JSON *value);
         JSON * retrieve_property(unsigned int symbol);
         
-        void insert_array_item(unsigned int symbol, JSON *value);
-        JSON * retrieve_array_item(unsigned int symbol);
+        void append_array_item(JSON *value);
+        void insert_array_item(unsigned int index, JSON *value);
+        JSON * retrieve_array_item(unsigned int index);
 
     private:
         class Lexer
@@ -98,6 +104,7 @@ class JSON
             int i;
             boolean truth;
             AvlIndex object;
+            GenericFn function;
         } variant;
 };
 

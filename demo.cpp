@@ -2,10 +2,10 @@
 
 #include <Arduino.h>
 #include "NodePool.h"
+#include "Registry.h"
 #include "AvlNode.h"
 #include "HashTable.h"
 #include "JSON.h"
-#include "Registry.h"
 #include "WebThings.h"
 
 void setup(Thing *thing)
