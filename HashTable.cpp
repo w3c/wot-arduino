@@ -59,10 +59,19 @@ unsigned int HashTable::hash(const unsigned char *key, unsigned int length)
     return h;
 }
 
+int HashTable::strlen(const unsigned char *str)
+{
+    int len = 0;
+    
+    while (*str++)
+        ++len;
+        
+    return len;
+}
+
 int HashTable::strcmp(const unsigned char *s1, unsigned int len1,
                         const unsigned char *s2, unsigned int len2)
-{
-        
+{  
     if (len1 && len2)
     {
         while(len1-- && len2-- && (*s1==*s2))
@@ -78,6 +87,25 @@ int HashTable::strcmp(const unsigned char *s1, unsigned int len1,
         return 0;
 
     return (len1 ? 1 : -1);
+}
+
+unsigned int HashTable::get_symbol(const unsigned char *key)
+{
+    unsigned int length = strlen(key);
+    unsigned int i = HASH_TABLE_SIZE, hashval = hash(key, length), index = hashval % HASH_TABLE_SIZE;
+    HashEntry *entry = 0;
+    
+    while (i-- && (entry = table+index, entry->key))
+    {
+        if (!strcmp(entry->key, entry->length, key, length))
+        {
+            return entry->value;
+        }
+            
+        index = (++index % HASH_TABLE_SIZE);
+    }
+    
+    return 0;
 }
 
 unsigned int HashTable::get_symbol(const unsigned char *key, unsigned int length, unsigned int *count)
@@ -105,12 +133,12 @@ unsigned int HashTable::get_symbol(const unsigned char *key, unsigned int length
         return entry->value;
     }
     
-    return false;
+    return 0;
 }
 
 boolean HashTable::insert_key(const unsigned char *key, unsigned int value)
 {
-    unsigned int length = strlen((const char *)key);
+    unsigned int length = strlen(key);
     return insert_key(key, length, value);
 }
 

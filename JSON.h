@@ -11,7 +11,7 @@
 enum Json_Tag { Unused_t, // used to identify unused JSON nodes
         Object_t, Array_t, String_t, Unsigned_t,
         Signed_t, Float_t, Boolean_t, Null_t,
-        Function_t, Proxy_t };
+        Function_t, Proxy_t, Thing_t };
 
 enum Json_Token {Error_token, String_token, Colon_token, Comma_token,
         Object_start_token, Object_stop_token, Array_start_token, Array_stop_token,

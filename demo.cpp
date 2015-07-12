@@ -7,7 +7,21 @@
 #include "JSON.h"
 #include "WebThings.h"
 
-void setup(Thing *thing, HashTable *table)
+// an example of a function used to initialise a Thing's implementation
+// here you should set event observers, initialise property values and
+// binding the thing's actions to the functions you provide for them.
+// note that this is your last chance to look up properties by name!
+
+void setup_agent(Thing *thing, HashTable *table)
+{
+    // CoreThing *door = thing->get_property(table->get_symbol("door"));
+}
+
+void setup_door(Thing *thing, HashTable *table)
+{
+}
+
+void setup_light(Thing *thing, HashTable *table)
 {
 }
 
@@ -59,9 +73,9 @@ int main ()
             "},"
         "}";
         
-    wot.thing("agent12", agent_model, setup);
-    wot.thing("door12", door_model, setup);
-    wot.thing("light12", light_model, setup);
+    wot.thing("agent12", agent_model, setup_agent);
+    wot.thing("door12", door_model, setup_door);
+    wot.thing("light12", light_model, setup_light);
     
     //cout << door_model;
     

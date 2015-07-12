@@ -241,6 +241,10 @@ void JSON::print()
             PRINT(F(" proxy "));
             break;
             
+        case Thing_t:
+            PRINT(F(" thing "));
+            break;
+            
         case Unused_t:
             break;  // nothing to do
     }

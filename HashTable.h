@@ -20,6 +20,7 @@ class HashTable
         boolean insert_key(const unsigned char *key, unsigned int value);
         boolean insert_key(const unsigned char *key, unsigned int length, unsigned int value);
         unsigned int get_symbol(const unsigned char *key, unsigned int length, unsigned int *count);
+        unsigned int get_symbol(const unsigned char *key);
         
 #ifdef DEBUG
         void print();
@@ -39,6 +40,7 @@ class HashTable
         unsigned int entries;
         HashEntry table[HASH_TABLE_SIZE];
         unsigned int hash(const unsigned char *key, unsigned int length);
+        int strlen(const unsigned char *str);
         int strcmp(const unsigned char *s1, unsigned int len1, const unsigned char *s2, unsigned int len2);
 };
 
