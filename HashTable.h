@@ -10,7 +10,7 @@
 // pick the table size based upon practical experience
 // call usage() method to measure how full the table is
 
-#define HASH_TABLE_SIZE  77
+#define HASH_TABLE_SIZE  31
 
 class HashTable
 {
@@ -20,7 +20,10 @@ class HashTable
         boolean insert_key(const unsigned char *key, unsigned int value);
         boolean insert_key(const unsigned char *key, unsigned int length, unsigned int value);
         unsigned int get_symbol(const unsigned char *key, unsigned int length, unsigned int *count);
+        
+#ifdef DEBUG
         void print();
+#endif
         float used();
             
     private:                

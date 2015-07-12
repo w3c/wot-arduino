@@ -1,17 +1,25 @@
 /* demo code for Web of Things Framework for Arduino */
 
 #include <Arduino.h>
+#include "NodePool.h"
 #include "AvlNode.h"
 #include "HashTable.h"
 #include "JSON.h"
+#include "Registry.h"
 #include "WebThings.h"
+
+void setup(Thing *thing)
+{
+}
 
 int main ()
 {
     WebThings wot;
     
     PRINTLN("started server\n");
-    
+    PRINT("size of thing is " );
+    PRINTLN(sizeof(Thing));
+        
     const char *agent_model PROGMEM = 
         "{"
             "\"@properties\": {"
@@ -51,10 +59,10 @@ int main ()
                 "}"
             "},"
         "}";
-    
-    Thing *agent = wot.thing("agent12", agent_model);
-    Thing *door = wot.thing("door12", door_model);
-    Thing *light = wot.thing("light12", light_model);
+        
+    wot.thing("agent12", agent_model, setup);
+    wot.thing("door12", door_model, setup);
+    wot.thing("light12", light_model, setup);
     
     //cout << door_model;
     
@@ -81,7 +89,7 @@ int main ()
     table.insert_key((const unsigned char *)"world", 88);
     table.print();
 
-    const char *test = "{\"a\":true}";  //[true]"; //"[ \"hello\", [null]]";
+    const char *test =  "[ \"hello\", [null]]"; //"{\"a\":true}"; "[true]";
     
     PRINTLN("\ntesting JSON parser");
     JSON *json = JSON::parse(test);
@@ -95,13 +103,10 @@ int main ()
         
     PRINT("\n");
     
-    PRINT("AVL Pool is using ");
-    PRINT(AvlNode::used());
+    PRINT("Node Pool is using ");
+    PRINT(wot.used());
     PRINTLN("% of available nodes");
-    
-    PRINT("JSON Pool is using ");
-    PRINT(JSON::json_pool_used());
-    PRINTLN("% of available nodes");
+    PRINTLN("");
  
     return 0;
 }

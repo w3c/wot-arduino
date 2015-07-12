@@ -2,28 +2,16 @@
 
 #include <ctype.h>
 #include <Arduino.h>
+#include "NodePool.h"
 #include "AvlNode.h"
 #include "HashTable.h"
 #include "JSON.h"
 
-// initialise memory pool for allocating JSON nodes
+static WotNodePool *node_pool;
 
-JSON *JSON::json_pool = NULL;
-unsigned int JSON::json_pool_length = 0;
-unsigned int JSON::json_pool_size = 0;
-
-void JSON::initialise_json_pool(JSON *buffer, unsigned int size)
+void JSON::initialise_pool(WotNodePool *wot_node_pool)
 {
-    json_pool = buffer;  // memory for size nodes
-    json_pool_length = size;  // number of possible nodes
-    json_pool_size = 0;  // index for allocation next node
-    memset(buffer, 0, size * sizeof(JSON));
-}
-
-float JSON::json_pool_used()
-{
-    // return percentage of allocated nodes
-    return 100.0 * json_pool_size / (1.0 * json_pool_length);
+    node_pool = wot_node_pool;
 }
 
 JSON * JSON::parse(const char *src)
@@ -36,7 +24,10 @@ JSON * JSON::parse(const char *src, unsigned int length)
     Lexer lexer;
     lexer.src = (unsigned char *)src;
     lexer.length = length;
+    
+#ifdef DEBUG
     PRINT(F("parsing ")); PRINTLN(src);
+#endif
     return parse_private(&lexer);
 }
 
@@ -67,7 +58,9 @@ JSON * JSON::parse_private(Lexer *lexer)
         case Signed_token:
             return new_signed(lexer->signed_num);
         default:
+#ifdef DEBUG
             PRINTLN(F("JSON syntax error"));
+#endif
             return null;
     }
     
@@ -75,7 +68,9 @@ JSON * JSON::parse_private(Lexer *lexer)
     
     if (token != Error_token)
     {
+#ifdef DEBUG
         PRINTLN(F("JSON syntax error"));
+#endif
         return null;
     }
 
@@ -123,7 +118,9 @@ JSON * JSON::parse_object(Lexer *lexer)
     
     // free incomplete object here along with its map from symbols to values
     
+#ifdef DEBUG
     PRINT(F("JSON syntax error in object, token is ")); PRINTLN(token);
+#endif
     return null;
 }
 
@@ -143,7 +140,9 @@ JSON * JSON::parse_array(Lexer *lexer)
             array->insert_array_item(index++, item);
         else
         {
+#ifdef DEBUG
             PRINTLN(F("missing array item"));
+#endif
             break;
         }
  
@@ -155,10 +154,14 @@ JSON * JSON::parse_array(Lexer *lexer)
         if (token != Comma_token)
             break;
     }
-    
+
+#ifdef DEBUG
     PRINTLN(F("JSON syntax error in array"));
+#endif
     return null;
 }
+
+#ifdef DEBUG
 
 void JSON::print_string(const unsigned char *name, unsigned int length)
 {
@@ -233,14 +236,15 @@ void JSON::print()
     }
 }
 
+#endif
+
 // allocate node from fixed memory pool
 JSON * JSON::new_node()
 {
-    JSON * node = NULL;
+    JSON * node = (JSON *)(node_pool->allocate_node());
     
-    if (json_pool && json_pool_size < json_pool_length)
+    if (node)
     {
-        node = json_pool + json_pool_size++;
         node->set_tag(Null_t);
         node->variant.number = 0.0;
     }

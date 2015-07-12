@@ -11,13 +11,15 @@ test: $(OBJECTS)
 	$(CXX) -o test $(CXXFLAGS) $(LDFLAGS) $(OBJECTS)
 
 .cpp.o: $(INCLUDES)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $<
+	$(CXX) -D DEBUG $(CPPFLAGS) $(CXXFLAGS) -c $<
 
 clean:
 	$(RM) $(OBJECTS) test
 
-WebThings.o: Arduino.h WebThings.h JSON.h AvlNode.h
-JSON.o: Arduino.h JSON.h AvlNode.h HashTable.h
+WebThings.o: Arduino.h WebThings.h Registry.h JSON.h AvlNode.h NodePool.h
+Registry.o: Arduino.h NodePool.h WebThings.h Registry.h
+NodePool.o: Arduino.h NodePool.h
+JSON.o: Arduino.h JSON.h AvlNode.h HashTable.h NodePool.h
 HashTable.o: Arduino.h HashTable.h
-AvlNode.o: Arduino.h AvlNode.h
-MessageCode.o: Arduino.h
+AvlNode.o: Arduino.h AvlNode.h NodePool.h
+MessageCoder.o: Arduino.h MessageCoder.h

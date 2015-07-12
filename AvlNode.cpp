@@ -1,31 +1,22 @@
 /* AvlTrees - a variant on balanced binary trees */
 
 #include <Arduino.h>
+#include "NodePool.h"
 #include "AvlNode.h"
 
 #define MAX(x, y) (((x) > (y))?(x):(y))
 
-#define AVLNODE(i) (pool+i)
+#define AVLNODE(i) ((AvlNode *)(node_pool + i - 1))
+#define AVLINDEX(node) ((AvlNode *)((wot_node_pool_t *)node - node_pool + 1));
 
 // initialise memory pool for allocating nodes
-AvlNode * AvlNode::pool = 0;
-unsigned int AvlNode::length = 0;
-unsigned int AvlNode::size = 0;
+static wot_node_pool_t *node_pool;
+static WotNodePool *node_pool_manager;
 
-// index zero is used to indicate null
-// we decrement the buffer pointer so that
-// index == 1 is the first entry in the buffer
-void AvlNode::initialise_pool(AvlNode *buffer, unsigned int size)
+void AvlNode::initialise_pool(WotNodePool *pool)
 {
-  pool = buffer - 1; // memory for size nodes
-  length = size;  // number of possible nodes
-  size = 0;  // index for allocation next node
-}
-
-float AvlNode::used()
-{
-    // return percentage of allocated nodes
-    return 100.0 * size / (1.0 * length);
+    node_pool_manager = pool;
+    node_pool = pool->get_pool();
 }
 
 AvlNode * AvlNode::get_node(AvlIndex index)
@@ -43,7 +34,8 @@ AvlValue AvlNode::get_value()
     return value;
 }
 
-// for debugging - remove to save space
+#ifdef DEBUG
+
 void AvlNode::print_keys(AvlIndex tree)
 {
     if (tree)
@@ -54,6 +46,8 @@ void AvlNode::print_keys(AvlIndex tree)
         print_keys(AVLNODE(tree)->right);
     }
 }
+
+#endif
 
 void AvlNode::apply(AvlIndex tree, AvlApplyFn applyFn, void *data)
 {
@@ -76,13 +70,12 @@ unsigned int AvlNode::get_size(AvlIndex tree)
 // allocate node from fixed memory pool
 AvlIndex AvlNode::new_node(AvlKey key, AvlValue value)
 {
+    AvlNode *node = (AvlNode *)(node_pool_manager->allocate_node());
     AvlIndex index = 0;
-    AvlNode *node;
-    
-    if (pool && size < length)
+
+    if (node)
     {
-        index = ++size;
-        node = AVLNODE(index);
+        index = node - ((AvlNode *)node_pool) + 1;
         node->key = key;
         node->value = value;
         node->height = 1;
@@ -247,14 +240,5 @@ AvlIndex AvlNode::insert_key(AvlIndex tree, AvlKey key, AvlValue value)
     }
     
     // tree already has key
-    return tree;
-}
-
-AvlIndex AvlNode::mk_node(AvlIndex left, AvlKey key, AvlValue value, AvlIndex right)
-{
-    AvlIndex tree = new_node(key, value);
-    AVLNODE(tree)->right = right;
-    AVLNODE(tree)->height = max(node_height(AVLNODE(tree)->left),
-                                 node_height(AVLNODE(tree)->right)) + 1;
     return tree;
 }

@@ -15,6 +15,8 @@ float HashTable::used()
     return 100.0 * entries / (1.0 * HASH_TABLE_SIZE);
 }
 
+#ifdef DEBUG
+
 void HashTable::print()
 {
     PRINT(F("Hash table has "));
@@ -32,7 +34,10 @@ void HashTable::print()
             PRINT("  "); PRINT((const char *)entry->key); PRINT(" : "); PRINTLN(entry->value);
         }
     }
+
 }
+
+#endif
 
 unsigned int HashTable::hash(const unsigned char *key, unsigned int length)
 {

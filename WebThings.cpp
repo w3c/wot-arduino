@@ -2,21 +2,25 @@
 
 #include <stdarg.h>
 #include <Arduino.h>
+#include "NodePool.h"
 #include "AvlNode.h"
 #include "HashTable.h"
 #include "JSON.h"
 #include "WebThings.h"
 
-// static allocation of memory pools
+#ifndef null
+#define null 0
+#endif
 
-AvlNode avlNodePool[AVL_NODE_POOL_SIZE];
-JSON jsonNodePool[JSON_NODE_POOL_SIZE];
+// static allocation of memory pools
+WotNodePool wot_node_pool;
 
 WebThings::WebThings()
 {
-    AvlNode::initialise_pool(&(avlNodePool[0]), AVL_NODE_POOL_SIZE);
-    JSON::initialise_json_pool(&(jsonNodePool[0]), JSON_NODE_POOL_SIZE);
+    AvlNode::initialise_pool(&wot_node_pool);
+    JSON::initialise_pool(&wot_node_pool);
     
+#ifdef DEBUG
     PRINT(F("avl node size: "));
     PRINT((sizeof(AvlNode)));
     PRINTLN(F(" bytes"));
@@ -25,64 +29,83 @@ WebThings::WebThings()
     PRINT((sizeof(JSON)));
     PRINTLN(F(" bytes"));
     
-    PRINT(F("avl pool size: "));
-    PRINT((AVL_NODE_POOL_SIZE * sizeof(AvlNode)));
+    PRINT(F("pool node size: "));
+    PRINT((sizeof(wot_node_pool_t)));
     PRINTLN(F(" bytes"));
     
-    PRINT(F("json pool size: "));
-    PRINT((JSON_NODE_POOL_SIZE * sizeof(JSON)));
+    PRINT(F("WoT pool size: "));
+    PRINT(wot_node_pool.size());
     PRINTLN(F(" bytes"));
+#endif
 }
 
-Thing * WebThings::thing(const char *name, const char *model)
+float WebThings::used()
 {
-    return new Thing();
+    return wot_node_pool.used();
 }
 
-void WebThings::register_proxy(const char *uri, ThingHandler succeed, ErrorHandler fail)
+void WebThings::thing(const char *name, const char *model, ThingHandler setup)
 {
-    Thing *proxy = new Thing();
-    succeed(proxy);
+
+    //PRINT(F("model length = "));
+    //PRINTLN((int)strlen(model));
+
+    //return new Thing();
 }
 
-void Thing::register_observer(const char *name, EventHandler handler)
+void WebThings::register_proxy(const char *uri, ThingHandler setup)
 {
+    //Thing *proxy = new Thing();
 }
 
-void Thing::unregister_observer(const char *name, EventHandler handler)
-{
-}
-
-void Thing::set_property(const char *name, Any value)
-{
-}
-
-Any Thing::get_property(const char *name)
-{
-    return null;
-}
-
-void Thing::invoke(const char *name, ...)
+void Thing::register_observer(Symbol event, EventHandler handler)
 {
 }
 
-void Proxy::register_observer(const char *name, EventHandler handler)
+void Thing::unregister_observer(Symbol event, EventHandler handler)
 {
 }
 
-void Proxy::unregister_observer(const char *name, EventHandler handler)
+void Thing::set_property(Symbol property, Any value)
 {
 }
 
-void Proxy::set_property(const char *name, Any value)
-{
-}
-
-Any Proxy::get_property(const char *name)
+Any Thing::get_property(Symbol property)
 {
     return null;
 }
 
-void Proxy::invoke(const char *name, ...)
+void Thing::invoke(Symbol action, ...)
 {
+}
+
+Symbol Thing::get_symbol(const char *name)
+{
+    return 0;
+}
+
+void Proxy::register_observer(Symbol event, EventHandler handler)
+{
+}
+
+void Proxy::unregister_observer(Symbol event, EventHandler handler)
+{
+}
+
+void Proxy::set_property(Symbol property, Any value)
+{
+}
+
+Any Proxy::get_property(Symbol property)
+{
+    return null;
+}
+
+void Proxy::invoke(Symbol action, ...)
+{
+}
+
+Symbol Proxy::get_symbol(const char *name)
+{
+    return 0;
 }

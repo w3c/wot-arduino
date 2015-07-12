@@ -2,21 +2,22 @@
     Experimental WoT Message encoder/decoder
    
     A server hosting a proxy for a thing, and the server hosting the
-    thing it proxies both have shared access to the things data model.
+    thing it proxies, have shared access to the thing's data model.
     This can be exploited for concise message encodings by sending a
     symbol in place of a string. For common situations, a symbol can be
     encoded with a singe byte.
    
     The message format starts with an identifier for the thing. This is
     followed by an item. Each item is at least one byte in length and
-    is one of: symbol, number, string, or object. Objects are formed by
-    zero or more pairs of name/value pairs followed by a byte code that
-    marks the end of the object. Names are symbols or strings. Values are
-    items. Strings are null terminated UTF-8 byte sequences. Numbers are
-    signed or unsigned integers and single precision floats. Integers
-    take one or more bytes to encode.
+    is one of: symbol, number, string, array or object. Arrays are formed
+    from zero or more values followed by a byte code marking the end
+    of the array. Objects are formed by zero or more pairs of name/value
+    pairs followed by a byte code marking the end of the object. Names
+    are symbols or strings. Values are items. Strings are null terminated
+    UTF-8 byte sequences. Numbers are signed or unsigned integers and
+    single precision floats. Integers take one or more bytes to encode.
    
-    Symbols include a core set that are used in messages, specials such
+    Symbols include a core set that is used in messages, specials such
     as true, false, and null, and thing specific symbols. A single byte
     is used for the first 200 symbols, which should be sufficient in
     most circumstances for microcontroller based servers.
@@ -36,7 +37,10 @@
        If we need binary blobs, how to encode their content type?
        
     The answer is no for all of these, at least for now. There are
-    plenty of reserved tags we could use for extensions.
+    plenty of reserved tags we could use for extensions. It would be
+    worth defining a means to declare the version of the message
+    format, but this doesn't need to be sent with every message and
+    could be disclosed as part of the server's metadata.
        
     The Arduino treats both float and double as 32 bit IEEE floating
     point numbers, and also lacks support for 64 bit integers. There
@@ -116,9 +120,10 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
 {
     unsigned int c;
     unsigned char *s;
-    
+
+#ifdef DEBUG
     PRINTLN(F("start object"));
-    
+#endif    
     for (;;)
     {
         // get name
@@ -131,11 +136,17 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
             
             if (c)
             {
+#ifdef DEBUG
                 PRINTLN(F("unterminated string"));
+#endif
                 return false;
             }
-            else 
+            else
+            {
+#ifdef DEBUG
                 PRINT(F("string \"")); PRINT((const char *)s); PRINTLN(F("\" :"));
+#endif
+            }
         
             // get value
             
@@ -145,10 +156,11 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
         else if (WOT_SYM_BASE <= c && c < 256)
         {
             c = c - WOT_SYM_BASE;
+#ifdef DEBUG
             PRINT(F("symbol "));
             PRINT(c);
             PRINT(F(" :\n"));
-        
+#endif
             // get value
             
             if (!decode(buffer))
@@ -160,12 +172,15 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
         }
         else
         {
+#ifdef DEBUF
             PRINT(F("didn't find string or symbol for object property name"));
+#endif
             return false;
         }
     }
-    
+#ifdef DEBUG
     PRINTLN(F("end object"));
+#endif
     return true;
 }
 
@@ -173,8 +188,10 @@ boolean MessageCoder::decode_array(MessageBuffer *buffer)
 {
     unsigned int c;
     
+#ifdef DEBUG
     PRINTLN(F("start array"));
-    
+#endif
+
     for (;;)
     {
         c = buffer->view_byte();
@@ -184,15 +201,19 @@ boolean MessageCoder::decode_array(MessageBuffer *buffer)
             
         if (c == WOT_END_OBJECT)
         {
+#ifdef DEBUG
             PRINTLN(F("found unexpected end of object"));
+#endif
             return false;
         }
             
         if (!decode(buffer))
             return false;
     }
-    
+
+#ifdef DEBUG
     PRINTLN(F("end array"));
+#endif
     return true;
 }
 
@@ -210,35 +231,45 @@ boolean MessageCoder::decode(MessageBuffer *buffer)
     
         case WOT_STRING:
         {
+#ifdef DEBUG
             unsigned char *s = buffer->get_pointer();
+#endif
             while ((c = buffer->get_byte()) && c < 256); 
             
             if (c)
             {
+#ifdef DEBUG
                 PRINTLN(F("unterminated string"));
+#endif
                 return false;
             }
             else
             {
+#ifdef DEBUG
                 PRINT(F("string \""));
                 PRINT((const char *)s);
                 PRINTLN(F("\""));
+#endif
             }
             break;
         }
 
         case WOT_UNSIGNED_INT_8:
             c = buffer->get_byte();
+#ifdef DEBUG
             PRINT(F("unsigned 8 bit integer "));
             PRINTLN(c);
+#endif
             break;
     
         case WOT_SIGNED_INT_8:
         {
             c = buffer->get_byte();
+#ifdef DEBUG
             uint16_t i = (uint16_t)c;
             PRINT(F("signed 8 bit integer "));
             PRINTLN(i);
+#endif
             break;
         }
         
@@ -265,13 +296,17 @@ boolean MessageCoder::decode(MessageBuffer *buffer)
             
             if (c == WOT_UNSIGNED_INT_16)
             {
+#ifdef DEBUG
                 PRINT(F("unsigned 16 bit integer "));
                 PRINTLN(num.u);
+#endif
             }
             else
             {
+#ifdef DEBUG
                 PRINT(F("signed 16 bit integer "));
                 PRINTLN(num.i);
+#endif
             }
             break;
         }
@@ -305,57 +340,77 @@ boolean MessageCoder::decode(MessageBuffer *buffer)
 
             if (c == WOT_UNSIGNED_INT_32)
             {
+#ifdef DEBUG
                 PRINT(F("unsigned 32 bit integer "));
                 PRINTLN(num.u);
+#endif
             }
             else if (c == WOT_SIGNED_INT_32)
             {
+#ifdef DEBUG
                 PRINT(F("signed 32 bit integer "));
                 PRINTLN(num.i);
+#endif
             }
             else
             {
+#ifdef DEBUG
                 PRINT(F("float "));
                 PRINTLN(num.x);
+#endif
             }
             break;
         }
         
         case WOT_VALUE_NULL:
+#ifdef DEBUG
             PRINTLN(F("null"));
+#endif
             break;
         
         case WOT_VALUE_TRUE:
+#ifdef DEBUG
             PRINTLN(F("true"));
+#endif
             break;
         
         case WOT_VALUE_FALSE:
+#ifdef DEBUG
             PRINTLN(F("false"));
+#endif
             break;
         
         default:
         {
             if (WOT_RESERVED_START <= c && c <= WOT_RESRVED_END)
             {
+#ifdef DEBUG
                 PRINTLN(F("illegal use of reserved tag"));
+#endif
                 return false;
             }
             else if (WOT_NUM_BASE <= c && c < WOT_SYM_BASE)
             {
+#ifdef DEBUG
                 uint16_t u = c - WOT_NUM_BASE;
                 PRINT(F("unsigned 4 bit integer "));
                 PRINTLN(u);
+#endif
 
             }
             else if (WOT_SYM_BASE <= c && c < 256)
             {
                 c -= WOT_SYM_BASE;
+#ifdef DEBUG
                 PRINT(F("symbol "));
-                PRINTLN(c);;
+                PRINTLN(c);
+#endif
             }
             else // unexpected end of buffer
             {
+#ifdef DEBUG
                 PRINTLN(F("unexpectedly reached end of buffer"));
+#endif
                 return false;
             }
         }
@@ -512,7 +567,9 @@ void MessageCoder::encode_symbol(MessageBuffer *buffer, unsigned int sym)
 {
     if (sym > 200)
     {
-        PRINTLN(F("symbol out of range"));   
+#ifdef DEBUG
+        PRINTLN(F("symbol out of range"));
+#endif
     }
     else
     {
@@ -567,6 +624,8 @@ void MessageCoder::encode_array_end(MessageBuffer *buffer)
     buffer->put_byte(WOT_END_ARRAY);
 }
 
+#ifdef DEBUG
+
 #define WOT_MESSAGE_LENGTH 128
 
 void MessageCoder::test()
@@ -615,5 +674,6 @@ void MessageCoder::test()
     PRINT(F("overflowed: ")); PRINTLN((membuf.overflowed() ? F("true") : F("false")));
 
     coder.decode(&membuf);
-    
 }
+
+#endif

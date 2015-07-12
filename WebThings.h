@@ -11,30 +11,34 @@ class Thing : public CoreThing
 
         void set_start(ThingHandler handler);
         void set_stop(ThingHandler handler);
-        void register_observer(const char *name, EventHandler handler);
-        void unregister_observer(const char *name, EventHandler handler);
-        void set_property(const char *name, Any value);
-        Any get_property(const char *name);
-        void invoke(const char *name, ...);
+        void register_observer(Symbol event, EventHandler handler);
+        void unregister_observer(Symbol event, EventHandler handler);
+        void set_property(Symbol property, Any value);
+        Any get_property(Symbol property);
+        void invoke(Symbol action, ...);
+        Symbol get_symbol(const char *name);
+
 };
 
 class Proxy : public CoreThing
 {
     public:
 
-        void register_observer(const char *name, EventHandler handler);
-        void unregister_observer(const char *name, EventHandler handler);
-        void set_property(const char *name, Any value);
-        Any get_property(const char *name);
-        void invoke(const char *name, ...);
+        void register_observer(Symbol event, EventHandler handler);
+        void unregister_observer(Symbol event, EventHandler handler);
+        void set_property(Symbol property, Any value);
+        Any get_property(Symbol property);
+        void invoke(Symbol action, ...);
+        Symbol get_symbol(const char *name);
 };
 
 class WebThings
 {
     public:
         WebThings();
-        Thing *thing(const char *name, const char *model);
-        void register_proxy(const char *uri, ThingHandler succeed, ErrorHandler fail);
+        float used();
+        void thing(const char *name, const char *model, ThingHandler setup);
+        void register_proxy(const char *uri, ThingHandler setup);
 };
 
 #endif

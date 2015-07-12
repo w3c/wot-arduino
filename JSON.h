@@ -21,13 +21,15 @@ enum Json_Token {Error_token, String_token, Colon_token, Comma_token,
 class JSON
 {
     public:
-        static void initialise_json_pool(JSON *pool, unsigned int size);
-        static float json_pool_used();
+        static void initialise_pool(WotNodePool *wot_node_pool);
         static JSON * parse(const char *src, unsigned int length);
         static JSON * parse(const char *src);
+        
+#ifdef DEBUG
         static void print_string(const unsigned char *name, unsigned int length);
         static void print_name_value(AvlKey key, AvlValue value, void *context);
         static void print_array_item(AvlKey key, AvlValue value, void *context);
+#endif
 
         static JSON * new_unsigned(unsigned int x);
         static JSON * new_signed(int x);
