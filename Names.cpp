@@ -1,15 +1,15 @@
 /* simple fixed size hashtable with no chaining for use on constrained devices */
 
 #include <Arduino.h>
-#include "HashTable.h"
+#include "Names.h"
 
-HashTable::HashTable()
+Names::Names()
 {
     this->entries = 0;
     memset(&table[0], 0, sizeof(HashEntry) * HASH_TABLE_SIZE);    
 }
 
-float HashTable::used()
+float Names::used()
 {
     // return percentage table is filled
     return 100.0 * entries / (1.0 * HASH_TABLE_SIZE);
@@ -17,7 +17,7 @@ float HashTable::used()
 
 #ifdef DEBUG
 
-void HashTable::print()
+void Names::print()
 {
     PRINT(F("Hash table has "));
     PRINT(entries);
@@ -39,7 +39,7 @@ void HashTable::print()
 
 #endif
 
-unsigned int HashTable::hash(const unsigned char *key, unsigned int length)
+unsigned int Names::hash(const unsigned char *key, unsigned int length)
 {
     // Jenkins One-at-a-Time hash
     unsigned char *p = (unsigned char *)key;
@@ -59,7 +59,7 @@ unsigned int HashTable::hash(const unsigned char *key, unsigned int length)
     return h;
 }
 
-int HashTable::strlen(const unsigned char *str)
+int Names::strlen(const unsigned char *str)
 {
     int len = 0;
     
@@ -69,7 +69,7 @@ int HashTable::strlen(const unsigned char *str)
     return len;
 }
 
-int HashTable::strcmp(const unsigned char *s1, unsigned int len1,
+int Names::strcmp(const unsigned char *s1, unsigned int len1,
                         const unsigned char *s2, unsigned int len2)
 {  
     if (len1 && len2)
@@ -89,7 +89,7 @@ int HashTable::strcmp(const unsigned char *s1, unsigned int len1,
     return (len1 ? 1 : -1);
 }
 
-unsigned int HashTable::get_symbol(const unsigned char *key)
+Symbol Names::get_symbol(const unsigned char *key)
 {
     unsigned int length = strlen(key);
     unsigned int i = HASH_TABLE_SIZE, hashval = hash(key, length), index = hashval % HASH_TABLE_SIZE;
@@ -108,7 +108,7 @@ unsigned int HashTable::get_symbol(const unsigned char *key)
     return 0;
 }
 
-unsigned int HashTable::get_symbol(const unsigned char *key, unsigned int length, unsigned int *count)
+Symbol Names::get_symbol(const unsigned char *key, unsigned int length, unsigned int *count)
 {
     unsigned int i = HASH_TABLE_SIZE, hashval = hash(key, length), index = hashval % HASH_TABLE_SIZE;
     HashEntry *entry = 0;
@@ -136,13 +136,13 @@ unsigned int HashTable::get_symbol(const unsigned char *key, unsigned int length
     return 0;
 }
 
-boolean HashTable::insert_key(const unsigned char *key, unsigned int value)
+boolean Names::insert_key(const unsigned char *key, unsigned int value)
 {
     unsigned int length = strlen(key);
     return insert_key(key, length, value);
 }
 
-boolean HashTable::insert_key(const unsigned char *key, unsigned int length, unsigned int value)
+boolean Names::insert_key(const unsigned char *key, unsigned int length, unsigned int value)
 {
     unsigned int i = HASH_TABLE_SIZE, hashval = hash(key, length), index = hashval % HASH_TABLE_SIZE;
     HashEntry *entry = 0;
@@ -170,7 +170,7 @@ boolean HashTable::insert_key(const unsigned char *key, unsigned int length, uns
     return false;
 }
 
-unsigned int HashTable::find_key(const unsigned char *key, unsigned int length)
+unsigned int Names::find_key(const unsigned char *key, unsigned int length)
 {
     unsigned int i = HASH_TABLE_SIZE, hashval = hash(key, length), index = hashval % HASH_TABLE_SIZE;
     HashEntry *entry;

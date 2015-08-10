@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "NodePool.h"
 #include "AvlNode.h"
-#include "HashTable.h"
+#include "Names.h"
 #include "JSON.h"
 
 static WotNodePool *node_pool;
@@ -14,17 +14,17 @@ void JSON::initialise_pool(WotNodePool *wot_node_pool)
     node_pool = wot_node_pool;
 }
 
-JSON * JSON::parse(const char *src, HashTable *table)
+JSON * JSON::parse(const char *src, Names *names)
 {
-    return parse(src, strlen(src), table);
+    return parse(src, strlen(src), names);
 }
 
-JSON * JSON::parse(const char *src, unsigned int length, HashTable *table)
+JSON * JSON::parse(const char *src, unsigned int length, Names *names)
 {
     Lexer lexer;
     lexer.src = (unsigned char *)src;
     lexer.length = length;
-    lexer.table = table;
+    lexer.names = names;
     
 #ifdef DEBUG
     PRINT(F("parsing ")); PRINTLN(src);
@@ -92,7 +92,7 @@ JSON * JSON::parse_object(Lexer *lexer)
         if (token != String_token)
             break;
             
-        unsigned int symbol = lexer->table->get_symbol(lexer->token_src,
+        unsigned int symbol = lexer->names->get_symbol(lexer->token_src,
                                         lexer->token_len, &symcount);
                                         
         token = lexer->get_token();
@@ -258,10 +258,7 @@ JSON * JSON::new_node()
     JSON * node = (JSON *)(node_pool->allocate_node());
     
     if (node)
-    {
-        node->set_tag(Null_t);
-        node->variant.number = 0.0;
-    }
+        node->taglen = 0;
     
     return node;
 }
@@ -410,6 +407,67 @@ void JSON::set_str_length(unsigned int length)
 unsigned int JSON::get_str_length()
 {
     return taglen >> 4;
+}
+
+boolean JSON::is_null()
+{
+    return (get_tag() == Null_t);
+}
+
+boolean JSON::get_boolean()
+{
+    if (get_tag() == Boolean_t)
+        return variant.truth;
+        
+    return false;
+}
+
+unsigned char * JSON::get_string(unsigned int *len)
+{
+    if (len)
+        *len = get_str_length();
+        
+    return variant.str;
+}
+
+unsigned int JSON::get_unsigned()
+{
+    if (get_tag() == Unsigned_t)
+        return variant.u;
+        
+    return 0;
+}
+
+int JSON::get_signed()
+{
+    if (get_tag() == Signed_t)
+        return variant.i;
+        
+    return 0;
+}
+
+float JSON::get_float()
+{
+    if (get_tag() == Float_t)
+        return variant.number;
+        
+    return 0.0;
+}
+
+Thing *JSON::get_thing()
+{
+    if (get_tag() == Thing_t)
+        return variant.thing;
+        
+    return null;
+}
+
+Proxy *JSON::get_proxy()
+{
+    if (get_tag() == Proxy_t)
+        return variant.proxy;
+        
+    return null;
 }
 
 JSON * JSON::retrieve_property(unsigned int symbol)

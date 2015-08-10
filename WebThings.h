@@ -12,8 +12,13 @@ class Thing : public CoreThing
         void set_start(ThingFunc handler);
         void set_stop(ThingFunc handler);
         void register_observer(Symbol event, EventFunc handler);
+        void register_observer(Names *names, unsigned char *event, EventFunc handler);
         void set_property(Symbol property, JSON *value);
+        void set_property(Names *names, unsigned char *property, JSON *value);
         JSON *get_property(Symbol property);
+        JSON *get_property(Names *names, unsigned char *property);
+        Thing *get_thing(Symbol property);
+        Thing *get_thing(Names *names, unsigned char *property);
         void invoke(Symbol action, ...);
 };
 
@@ -22,8 +27,13 @@ class Proxy : public CoreThing
     public:
 
         void register_observer(Symbol event, EventFunc handler);
+        void register_observer(Names *names, unsigned char *event, EventFunc handler);
         void set_property(Symbol property, JSON *value);
+        void set_property(Names *names, unsigned char *property, JSON *value);
         JSON *get_property(Symbol property);
+        JSON *get_property(Names *names, unsigned char *property);
+        Thing *get_thing(Symbol property);
+        Thing *get_thing(Names *names, unsigned char *property);
         void invoke(Symbol action, ...);
 };
 

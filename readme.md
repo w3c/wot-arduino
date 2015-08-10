@@ -14,6 +14,8 @@ A very constrained web of things server can be used with a single sensor or actu
 
 Every attempt is being made to reduce the memory footprint. If you have suggestions for further improvments, please let us know!
 
+More design details can be found in the long thread [Design questions for implementing the Web of Things in C](https://github.com/w3c/wot-arduino/issues/1).
+
 
 ## Prerequisites
 

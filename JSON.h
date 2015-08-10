@@ -8,28 +8,32 @@
 #endif
 
 // Function and Proxy are special nodes that are used for things
-enum Json_Tag { Unused_t, // used to identify unused JSON nodes
+enum Json_Tag { Unused_t, // reserved for unused JSON nodes
         Object_t, Array_t, String_t, Unsigned_t,
         Signed_t, Float_t, Boolean_t, Null_t,
         Function_t, Proxy_t, Thing_t };
 
-enum Json_Token {Error_token, String_token, Colon_token, Comma_token,
+enum Json_Token { Error_token, String_token, Colon_token, Comma_token,
         Object_start_token, Object_stop_token, Array_start_token, Array_stop_token,
         Float_token, Unsigned_token, Signed_token, Null_token, True_token, False_token};
-        
-class JSON; // forward reference
+
+// forward references
+class Thing;
+class Proxy;
+class JSON; 
 
 typedef void (*GenericFn)(JSON *data);
-typedef uint8_t Symbol;  // used in place of names to save memory & message size
 
 #define JSON_SYMBOL_BASE 10
+
+// JSON is 6 bytes on ATmega328 and 32 bit MCUs, and 10 bytes on 64 bit computers
 
 class JSON
 {
     public:
         static void initialise_pool(WotNodePool *wot_node_pool);
-        static JSON * parse(const char *src, unsigned int length, HashTable *table);
-        static JSON * parse(const char *src, HashTable *table);
+        static JSON * parse(const char *src, unsigned int length, Names *names);
+        static JSON * parse(const char *src, Names *names);
         
 #ifdef DEBUG
         static void print_string(const unsigned char *name, unsigned int length);
@@ -50,6 +54,15 @@ class JSON
         void print();
         Json_Tag json_type();
         
+        boolean is_null();
+        boolean get_boolean();
+        unsigned char *get_string(unsigned int *length);
+        unsigned int get_unsigned();
+        int get_signed();
+        float get_float();
+        Thing *get_thing();
+        Proxy *get_proxy();
+        
         void insert_property(unsigned int symbol, JSON *value);
         JSON * retrieve_property(unsigned int symbol);
         
@@ -62,7 +75,7 @@ class JSON
         class Lexer
         {
             public:
-                HashTable *table;
+                Names *names;
                 unsigned char *src;
                 unsigned int length;
                 unsigned char *token_src;
@@ -101,6 +114,8 @@ class JSON
         
         union js_union
         {
+            Thing *thing;
+            Proxy *proxy;
             unsigned char *str;
             float number;
             unsigned int u;

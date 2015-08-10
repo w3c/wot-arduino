@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "NodePool.h"
 #include "AvlNode.h"
-#include "HashTable.h"
+#include "Names.h"
 #include "JSON.h"
 #include "WebThings.h"
 
@@ -47,7 +47,7 @@ float WebThings::used()
 
 void WebThings::thing(const char *name, const char *model, SetupFunc setup)
 {
-    HashTable table;
+    Names names;
     unsigned int id = 0;
     Thing *t = things, *thing = new Thing();
     
@@ -61,7 +61,7 @@ void WebThings::thing(const char *name, const char *model, SetupFunc setup)
     
         thing->uri = (char *)name;
         thing->id = ++id;
-        thing->model = get_index(JSON::parse(model, &table));
+        thing->model = get_index(JSON::parse(model, &names));
         thing->events = get_index(JSON::new_object());
         thing->properties = get_index(JSON::new_object());
         thing->actions = get_index(JSON::new_object());
@@ -69,7 +69,7 @@ void WebThings::thing(const char *name, const char *model, SetupFunc setup)
     
         thing->next = (Thing *)things;
         things = thing;
-        setup(thing, &table);
+        setup(thing, &names);
     }
 }
 
@@ -140,11 +140,27 @@ NPIndex WebThings::get_index(JSON *json)
     return 0;
 }
 
+void Thing::register_observer(Names *names, unsigned char *event, EventFunc handler)
+{
+    Symbol symbol = names->get_symbol(event);
+    
+    if (symbol)
+        register_observer(symbol, handler);
+}
+
 void Thing::register_observer(Symbol event, EventFunc handler)
 {
     JSON *node = JSON::new_function((GenericFn)handler);
     JSON *events = WebThings::get_json(this->events);
     events->insert_property(event, node);
+}
+
+void Thing::set_property(Names *names, unsigned char *property, JSON *value)
+{
+    Symbol symbol = names->get_symbol(property);
+    
+    if (symbol)
+        set_property(symbol, value);
 }
 
 void Thing::set_property(Symbol property, JSON *value)
@@ -153,10 +169,40 @@ void Thing::set_property(Symbol property, JSON *value)
     properties->insert_property(property, value);
 }
 
+JSON *Thing::get_property(Names *names, unsigned char *property)
+{
+    Symbol symbol = names->get_symbol(property);
+    
+    if (symbol)
+        return get_property(symbol);
+        
+    return null;
+}
+
 JSON *Thing::get_property(Symbol property)
 {
     JSON *properties = WebThings::get_json(this->properties);
     return properties->retrieve_property(property);
+}
+
+Thing *Thing::get_thing(Names *names, unsigned char *property)
+{
+    Symbol symbol = names->get_symbol(property);
+    
+    if (symbol)
+        return get_thing(symbol);
+        
+    return null;
+}
+Thing *Thing::get_thing(Symbol property)
+{
+    JSON *properties = WebThings::get_json(this->properties);
+    JSON *json = properties->retrieve_property(property);
+    
+    if (json)
+        return json->get_thing();
+        
+    return null;
 }
 
 void Thing::invoke(Symbol action, ...)
@@ -174,11 +220,12 @@ void Thing::invoke(Symbol action, ...)
     }
 }
 
-void Proxy::register_observer(Symbol event, EventFunc handler)
+void Proxy::set_property(Names *names, unsigned char *property, JSON *value)
 {
-    JSON *node = JSON::new_function((GenericFn)handler);
-    JSON *events = WebThings::get_json(this->events);
-    events->insert_property(event, node);
+    Symbol symbol = names->get_symbol(property);
+    
+    if (symbol)
+        set_property(symbol, value);
 }
 
 void Proxy::set_property(Symbol property, JSON *value)
@@ -187,10 +234,40 @@ void Proxy::set_property(Symbol property, JSON *value)
     properties->insert_property(property, value);
 }
 
+JSON *Proxy::get_property(Names *names, unsigned char *property)
+{
+    Symbol symbol = names->get_symbol(property);
+    
+    if (symbol)
+        return get_property(symbol);
+        
+    return null;
+}
+
 JSON *Proxy::get_property(Symbol property)
 {
     JSON *properties = WebThings::get_json(this->properties);
     return properties->retrieve_property(property);
+}
+
+Thing *Proxy::get_thing(Names *names, unsigned char *property)
+{
+    Symbol symbol = names->get_symbol(property);
+    
+    if (symbol)
+        return get_thing(symbol);
+        
+    return null;
+}
+Thing *Proxy::get_thing(Symbol property)
+{
+    JSON *properties = WebThings::get_json(this->properties);
+    JSON *json = properties->retrieve_property(property);
+    
+    if (json)
+        return json->get_thing();
+        
+    return null;
 }
 
 void Proxy::invoke(Symbol action, ...)

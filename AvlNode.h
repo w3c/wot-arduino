@@ -21,6 +21,8 @@ typedef void (*AvlApplyFn)(AvlKey key, AvlValue value, void *data);
 // symbols denoting named indices, and positive values as
 // numeric indices
 
+// AvlNode is 6 bytes on ATmega328 and 32 bit MCUs, and 12 bytes on 64 bit computers
+
 class AvlNode
 {
     public:

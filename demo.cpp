@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include "NodePool.h"
 #include "AvlNode.h"
-#include "HashTable.h"
+#include "Names.h"
 #include "JSON.h"
 #include "WebThings.h"
 
@@ -12,16 +12,16 @@
 // binding the thing's actions to the functions you provide for them.
 // note that this is your last chance to look up properties by name!
 
-void setup_agent(Thing *thing, HashTable *table)
+void setup_agent(Thing *thing, Names *names)
 {
-    // CoreThing *door = thing->get_property(table->get_symbol("door"));
+    // CoreThing *door = thing->get_property(names->get_symbol("door"));
 }
 
-void setup_door(Thing *thing, HashTable *table)
+void setup_door(Thing *thing, Names *names)
 {
 }
 
-void setup_light(Thing *thing, HashTable *table)
+void setup_light(Thing *thing, Names *names)
 {
 }
 
@@ -92,20 +92,20 @@ int main ()
     cout << "tree size = " << AvlNode::get_size(tree) << "\n";
     AvlNode::print_keys(tree);
    
-    HashTable table;
-    table.insert_key((const unsigned char *)"one", 11);
-    table.insert_key((const unsigned char *)"three", 33);
-    table.insert_key((const unsigned char *)"two", 22);
-    table.insert_key((const unsigned char *)"hello", 55);
-    table.insert_key((const unsigned char *)"mum", 66);
-    table.insert_key((const unsigned char *)"brave", 77);
-    table.insert_key((const unsigned char *)"world", 88);
-    table.print();
+    Names names;
+    names.insert_key((const unsigned char *)"one", 11);
+    names.insert_key((const unsigned char *)"three", 33);
+    names.insert_key((const unsigned char *)"two", 22);
+    names.insert_key((const unsigned char *)"hello", 55);
+    names.insert_key((const unsigned char *)"mum", 66);
+    names.insert_key((const unsigned char *)"brave", 77);
+    names.insert_key((const unsigned char *)"world", 88);
+    names.print();
 
     const char *test =  "[ \"hello\", [null]]"; //"{\"a\":true}"; "[true]";
     
     PRINTLN("\ntesting JSON parser");
-    JSON *json = JSON::parse(test, &table);
+    JSON *json = JSON::parse(test, &names);
     
     PRINTLN("\nparsing complete");
     

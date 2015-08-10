@@ -1,7 +1,7 @@
 // hash table for symbol dictionary
 
-#ifndef _WOTF_HASHTABLE
-#define _WOTF_HASHTABLE
+#ifndef _WOTF_NAMES
+#define _WOTF_NAMES
 
 #ifndef null
 #define null 0
@@ -12,15 +12,17 @@
 
 #define HASH_TABLE_SIZE  31
 
-class HashTable
+typedef uint8_t Symbol;  // used in place of names to save memory & message size
+
+class Names
 {
     public:
-        HashTable();
+        Names();
         unsigned int find_key(const unsigned char *key, unsigned int length);
         boolean insert_key(const unsigned char *key, unsigned int value);
         boolean insert_key(const unsigned char *key, unsigned int length, unsigned int value);
-        unsigned int get_symbol(const unsigned char *key, unsigned int length, unsigned int *count);
-        unsigned int get_symbol(const unsigned char *key);
+        Symbol get_symbol(const unsigned char *key, unsigned int length, unsigned int *count);
+        Symbol get_symbol(const unsigned char *key);
         
 #ifdef DEBUG
         void print();

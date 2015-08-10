@@ -9,7 +9,7 @@ class Thing;
 class JSON;
 
 typedef void *Any;
-typedef void (*SetupFunc)(Thing *thing, HashTable *table);
+typedef void (*SetupFunc)(Thing *thing, Names *names);
 typedef void (*ThingFunc)(Thing *thing);
 typedef void (*EventFunc)(Symbol event, Thing *thing, Any data);
 
@@ -27,8 +27,13 @@ class CoreThing
         CoreThing *next;  // linked list of registered things/proxies
     
         virtual void register_observer(Symbol event, EventFunc handler) = 0;
+        virtual void register_observer(Names *names, unsigned char *event, EventFunc handler) = 0;
         virtual void set_property(Symbol property, JSON *value) = 0;
+        virtual void set_property(Names *names, unsigned char *name, JSON *value) = 0;
         virtual JSON *get_property(Symbol property) = 0;
+        virtual JSON *get_property(Names *names, unsigned char *name) = 0;
+        virtual Thing *get_thing(Symbol property) = 0;
+        virtual Thing *get_thing(Names *names, unsigned char *name) = 0;
         virtual void invoke(Symbol action, ...) = 0;
 };
 
