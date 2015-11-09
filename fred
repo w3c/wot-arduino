@@ -8,7 +8,7 @@ test
 *.o
 
 # don't sync Ethercard
-# Ethercard/
+Ethercard/
 
 # don't sync Visual Studio files
 .ntvs_analysis.dat
