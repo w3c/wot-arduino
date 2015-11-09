@@ -44,6 +44,10 @@ We encourage you to join the W3C [Web of Things Community Group](https://www.w3.
 
 The amount of time you contribute and the areas in which you contribute is up to you. 
 
+### Acknowledgements
+
+This work has been funded in part (through October 2015) by the European Union's 7th Research Framework Programme (FP7/ 2013-2015) under grant agreement nº317862 - Compose.
+
 ## License
 
 (The MIT License)

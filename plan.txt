@@ -1,0 +1,122 @@
+Plan for Web of Things Server
+=============================
+
+Integrate WiznetUDP library [1] along with EventQueue [2] as part of the wot-arduino project [3]. I plan to emulate the setup/loop interface, and to rely on polling for the network (for now).
+
+[1] ~/Documents/Arduino/libraries/WiznetUDP/
+[2] ~/Projects/wot-udp/
+[3] ~/Projects/wot-arduino/
+[4] ~/Projects/web-sockets/whttp.c
+
+The first step is to align the UDP interface. udp.h and WiznetUDP.h are very close. I need to modify udp.h to add address and port to the send and receive methods. I also need to add a send_available method. 
+
+Further work is needed to add support for parsing from the receive buffer and writing bytes and words to the send buffer. This will involve private buffers in the class, that abstractly correspond to the RAM on the W5100. To emulate the Arduino, I need Arduino.h, Arduino.cpp and a sketch.cpp.
+
+To build a demo I need a client and a server.  One idea is to make two versions of the server with different sketches, and run them on different ports. This would allow me to test proxies.  I can't use a web browser as a client since browsers don't support UDP based protocols.
+
+Wot-arduino Project
+
+ demo.cpp - some tests for JSON, encode/decode, AVL tree, hash table
+ WebThings.h, .cpp - Thing, Proxy and WebThings (aka wot) classes
+ MessageCoder.h, .cpp - JSON message serialisation and de-serialisation
+ JSON.h, .cpp - class for representing JSON data types
+ Names.h, .cpp - hash table for mapping names to numeric Id's
+ AvlNode.h, .cpp - balanced binary trees for number to value map
+ NodePool.h, .cpp - assignment of JSON and AVL nodes from static pool
+ Arduino.h - some macros to ease translation to Arduino build process
+ 
+Wot-udp project:
+
+ client.cpp - simple client for testing the simple server
+ server.cpp - simple event driven server echoing packets back
+ tdp.h, .cpp - wrapper for UDP class with add_byte, add_word etc.
+ event.h, .cpp - event queue management
+ udp.h, .cpp - support for UDP datagrams
+ arduino.h, .cpp - mail() with setup/loop and select for UDP socket
+ 
+Wiznet project:
+
+ sketch.ino - setup/loop for simple server for use with above client
+ WiznetUDP.h, .cpp - UDP & SPI support for W5100 Ethernet chip
+ 
+I think I need to evolve the wot-arduino project to replace demo.cpp by sketch.cpp, and to add event.cpp and udp.cpp. I then need to extend udp.cpp to add some of the convenience functions for reading from receive buffers and writing to send buffers.
+
+Before getting much further, I need to consider how to support timers for resending packets until they have been acknowledged, and for managing sessions where server IP & port pairs are associated with a message Id that is used to detect duplicate packets.
+
+The resend timer is supposed to provide an exponential back off until an upper limit is reached at which point the server gives up on the session. This could be implemented by a simple timer event and applying a multiplier when setting the next timer event. We need a way to set a timer and return a handle that can be used to clear the timer.  The timer is per session, since the server could in principle have multiple clients. There are only a few hardware timers, so using a hardware timer per timeout won't scale. A solution is to use a hardware time for a regular heartbeat. This is in turn used to decrement a software counter for each session.
+
+Each session has:
+  - message Id (2 bytes)
+  - client IP address and port (6 bytes)
+  - resend timer (4 bytes)
+  - resend interval (4 bytes)
+  - message requiring an acknowledgement
+  - heartbeat event handler
+  
+A heartbeat of 1 mS with a 2 byte timer would only last for 1 minute. I think a longer session timeout may be needed for adverse conditions, so a 3 or 4 byte counter would make sense.  In practice, the server would only have one client.  I am therefore thinking about either limiting the server to one client or have support for just a few, e.g. 4 clients.  The session buffers can be marked as empty by having zero for either the message Id or client IP address.
+
+The tdp class in the wot-udp project was intended as a protocol layer above UDP. I can elaborate on that as a learning step towards CoAP.   I should probably do so before integrating the network code into the Wot-arduino project.
+
+The interface needs to cover:
+
+  - start tx buffer (optionally with a size)
+  - write strings, bytes, words to buffer
+  - send the packet to an IP address and port
+  - wait for acknowledgement resending as needed (check on IP and port and Message Id)
+  - release the tx buffer
+
+Acknowledgment packets could use the message Id passed by the sender.
+
+A server expects to receive asynchronous messages from clients. In this case the client includes its message Id. The server then sends an acknowledgement back with the client’s message Id. The server processes the client’s request and sends a response. This too could use the message Id from the client’s request. The client can then discard/ignore packets which don’t have the expected message Id.
+
+Client’s and servers retain the tx buffer until they get an acknowledgement. I seem to remember advice to serialise things and only deal with one transaction at a time rather than trying to support multiple requests concurrently. However, a server may receive an request from client B whilst still waiting for an ack from a response set to client A.
+
+ a. receive request from client A with id  a1 -> trigger event to process request
+ b. send ack with id a1
+ c. receive request from client A with id a1 -> discard then send ack with id a1
+ d. send response to client A with id a1 -> wait for ack from client A with id a1
+ e. timeout, resend response
+ f. receive ack from client A with id a1 -> stop waiting, discard response buffer
+
+So I need a transaction buffer that keeps track of the client IP address, port and message id. This is set up when requesting a new request. When receiving a duplicate, the session buffer is checked and if there is a matching IP address, port and message id the duplicate is discarded and another ack sent.
+
+When sending a response, I need to know the transaction, so that I can use the correct IP address, port and message id.  The response is held until the matching ack is received. At this point the response can be freed along with the session.  The client is expected to send new requests with a different message id, and to avoid re-using the same message id until a lengthy period has occurred. If the client sends a new request before the server has received an ack for the response to the previous request, the new request can be discarded and ignored. I could also ignore requests from other clients (IP and port) whilst the current transaction is being handled.
+
+This implies that it is sufficient to have a single transaction with the client IP, port, message id, timer, ack and response buffers. The ack has to be retained until the response is ready. One failure mode has the client resend the request, so that the server is sending the response before the client gets the ack to the requests. At this point the server could send the response to duplicate requests. A timeout occurs when the server doesn’t get an ack to the response in a reasonable time period. At this point client requests are treated as new requests. Alternatively, we could detect it is a duplicate for the previous failed transaction and send a negative acknowledgement.
+
+The client increments the message id before each transaction. (if this results in an overflow of the unsigned integer value, this should be ignored). The request is resent at increasing intervals until either an ack is received or a response is received or a timeout occurs. If an ack was received the client then waits for a response with a time out. If a response is received within the timeout interval, the client sends an ack. The response is then dealt with and the transaction marked as completed. The client continues to send acks for any duplicate responses it receives. The transaction state is thus {idle, sent_request, ack_received}
+
+  idle:
+    on receiving ack discard
+    on receiving expected response send ack
+    on receiving unexpected response send error
+    on receiving request -> send ack, handle request, move to process request
+    on sending request, move to wait_for_request_ack
+  wait_for_request_ack:
+    on matching ack move to wait_for_response
+    on resend timeout, send request
+    on matching response deliver response, move to idle
+    on timeout deliver error, move to idle
+    on receiving request send error
+  wait_for_response:
+    on matching response deliver response, move to idle
+    on timeout deliver error, move to idle
+    on receiving request send error
+  process_request:
+    on receiving duplicate request, send ack
+    on receiving non-duplicate request send error
+    on response_ready, send response, move to response
+  response:
+    on duplicate request, send response
+    on receiving non-duplicate request send error
+    on matching ack, move to idle
+    on resend timeout, send response
+    on transmit timeout, deliver error, move to idle
+    
+This state machine allows for behaving as a client or a server, but only doing one thing at a time. It needs extending to support the kinds of messages needed for thing synchronisation. This starts with the registration of a proxy, after which proxies and the proxied thing may send asynchronous messages. These require acknowledgements, but typically don't have a response & response acknowledgement. 
+
+In principle, you could have several proxies for the same thing, and use multicast datagrams for their delivery. In practice, that seems unlikely, as I would instead expect the use of a hub. I should allow for multiple proxies along with a means to listen for acks on each of them. This will require some special handling.
+    
+
+For test purposes, I could have the client send a sequence of requests, and use a random generator to fail some of the packets. The client sends a request, waits for an ack/response then moves to an idle mode where acks responses.
+
