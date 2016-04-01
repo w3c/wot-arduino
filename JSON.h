@@ -7,78 +7,79 @@
 #define null 0
 #endif
 
+
 // Function and Proxy are special nodes that are used for things
-enum Json_Tag { Unused_t, // reserved for unused JSON nodes
+enum Json_Tag { Unused_t, // used to identify unused JSON nodes
         Object_t, Array_t, String_t, Unsigned_t,
         Signed_t, Float_t, Boolean_t, Null_t,
         Function_t, Proxy_t, Thing_t };
 
-enum Json_Token { Error_token, String_token, Colon_token, Comma_token,
+enum Json_Token {Error_token, String_token, Colon_token, Comma_token,
         Object_start_token, Object_stop_token, Array_start_token, Array_stop_token,
         Float_token, Unsigned_token, Signed_token, Null_token, True_token, False_token};
+        
+class JSON; // forward reference
+
+typedef void (*GenericFn)(JSON *data);
+typedef uint8_t Symbol;  // used in place of names to save memory & message size
+
+#define JSON_SYMBOL_BASE 10
 
 // forward references
 class Thing;
 class Proxy;
-class JSON; 
-
-typedef void (*GenericFn)(JSON *data);
-
-#define JSON_SYMBOL_BASE 10
-
-// JSON is 6 bytes on ATmega328 and 32 bit MCUs, and 10 bytes on 64 bit computers
 
 class JSON
 {
     public:
         static void initialise_pool(WotNodePool *wot_node_pool);
-        static JSON * parse(const char *src, unsigned int length, Names *names);
-        static JSON * parse(const char *src, Names *names);
-        
-#ifdef DEBUG
-        static void print_string(const unsigned char *name, unsigned int length);
+#if defined(pgm_read_byte)
+        static JSON * parse(const __FlashStringHelper *, Names *table);
+#endif
+        static JSON * parse(const char *, Names *table);
+        static void print_string(const char *name, unsigned int length);
         static void print_name_value(AvlKey key, AvlValue value, void *context);
         static void print_array_item(AvlKey key, AvlValue value, void *context);
-#endif
-
+        static void reachable_item(AvlKey key, AvlValue value, void *context);
+        static void sweep_item(AvlKey key, AvlValue value, void *context);
         static JSON * new_unsigned(unsigned int x);
         static JSON * new_signed(int x);
         static JSON * new_float(float x);
         static JSON * new_null();
         static JSON * new_boolean(boolean value);
-        static JSON * new_string(unsigned char *str, unsigned int length);
+        static JSON * new_string(const __FlashStringHelper *str);
+        static JSON * new_string(char *str);
+        static JSON * new_string(char *str, unsigned int length);
         static JSON * new_object();
         static JSON * new_array();
         static JSON * new_function(GenericFn func);
+        static void set_gc_phase(boolean phase);
+        
+        boolean free_leaves();
+        void reachable(boolean phase);
+        void sweep(boolean phase);
+        boolean marked(boolean phase);
 
         void print();
-        Json_Tag json_type();
+        Json_Tag get_tag();
         
-        boolean is_null();
-        boolean get_boolean();
-        unsigned char *get_string(unsigned int *length);
-        unsigned int get_unsigned();
-        int get_signed();
-        float get_float();
-        Thing *get_thing();
-        Proxy *get_proxy();
+        void insert_property(Symbol symbol, JSON *value);
+        JSON * retrieve_property(Symbol symbol);
         
-        void insert_property(unsigned int symbol, JSON *value);
-        JSON * retrieve_property(unsigned int symbol);
-        
+        GenericFn retrieve_function(Symbol symbol);
+
         void append_array_item(JSON *value);
         void insert_array_item(unsigned int index, JSON *value);
         JSON * retrieve_array_item(unsigned int index);
-        GenericFn retrieve_function(Symbol symbol);
-
+        
     private:
         class Lexer
         {
             public:
-                Names *names;
-                unsigned char *src;
+                Names *table;
+                const char  *src;
                 unsigned int length;
-                unsigned char *token_src;
+                char *token_src;
                 unsigned int token_len;
                 unsigned int unsigned_num;
                 int signed_num;
@@ -100,29 +101,35 @@ class JSON
         static JSON * parse_private(Lexer *lexer);
         static JSON * parse_object(Lexer *lexer);
         static JSON * parse_array(Lexer *lexer);
+        static JSON * parse(const char *, unsigned int length, Names *table);
         
-        // to reduce the size of JSON Nodes we combine the tag
-        // and string token length into a uint16_t relying on
-        // special getter and setter methods to hide this
+        // the first 2 bytes combine the 4 bit JSON tag, a mark/sweep
+        // flag and 11 bits for the string length or object id
 
-        Json_Tag get_tag();
         void set_tag(Json_Tag tag);
+        void set_obj_id(unsigned int id);
+        unsigned int get_obj_id();
         void set_str_length(unsigned int length);
         unsigned int get_str_length();
-        
-        uint16_t taglen;  // composite field for tag and string length
+        void toggle_mark();
+        void set_mark();
+        void reset_mark();
+        void check_if_stale(JSON * old_value, JSON * new_value);
+        void free();
+
+        uint16_t taglen;  // composite field for tag, mark, id and string length
         
         union js_union
         {
-            Thing *thing;
-            Proxy *proxy;
-            unsigned char *str;
-            float number;
+            char *str; // 16 bits on AVR
+            float number;  // 32 bits on AVR
             unsigned int u;
-            int i;
+            int i;   // 16 bits on AVR
             boolean truth;
             AvlIndex object;
-            GenericFn function;
+            Thing *thing;
+            Proxy *proxy;
+            GenericFn function; // 16 bits on AVR
         } variant;
 };
 

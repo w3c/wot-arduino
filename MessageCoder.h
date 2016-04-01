@@ -19,6 +19,9 @@
 #define WOT_VALUE_FALSE 13
 #define WOT_VALUE_NULL 14
 
+// used to signal decoding overrun
+#define WOT_BUFFER_EMPTY 256
+
 // tags in range 15-22 are reserved for future use
 
 #define WOT_RESERVED_START 15
@@ -28,7 +31,7 @@
 
 #define WOT_NUM_BASE 23
 
-// tags in range 55-255 are symbols (0 through 200)
+// tags in range 55-255 are symbols (1 through 200)
 
 #define WOT_SYM_BASE 55
 
@@ -45,23 +48,28 @@ class MessageBuffer
     public:
         boolean is_big_endian();
         void set_buffer(unsigned char *buf, unsigned len);
+        void reset();
+        void restart();
         unsigned char * get_pointer();
         boolean overflowed();
         unsigned int get_size();
         unsigned int get_byte();
         unsigned int view_byte();
+        unsigned int remaining();
         bool put_byte(unsigned char c);
 };
 
 class MessageCoder
 {
-    public:
-        static void test();
-          
-        static boolean decode(MessageBuffer *buffer);
+    private:
+        static boolean decode_value(MessageBuffer *buffer);
         static boolean decode_object(MessageBuffer *buffer);
         static boolean decode_array(MessageBuffer *buffer);
-
+    
+    public:
+        //static void test();
+        
+        static boolean decode(MessageBuffer *buffer);
         static void encode_unsigned8(MessageBuffer *buffer, unsigned char n);
         static void encode_unsigned16(MessageBuffer *buffer, uint16_t n);
         static void encode_unsigned32(MessageBuffer *buffer, uint32_t n);
@@ -74,6 +82,9 @@ class MessageCoder
         static void encode_false(MessageBuffer *buffer);
         static void encode_symbol(MessageBuffer *buffer, unsigned int sym);
         static void encode_string(MessageBuffer *buffer, unsigned char *str);
+#if defined(pgm_read_byte)
+        static void encode_string(MessageBuffer *buffer, const __FlashStringHelper *str);
+#endif
         static void encode_object_start(MessageBuffer *buffer);
         static void encode_object_end(MessageBuffer *buffer);
         static void encode_array_start(MessageBuffer *buffer);

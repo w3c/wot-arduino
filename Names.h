@@ -12,21 +12,20 @@
 
 #define HASH_TABLE_SIZE  31
 
-typedef uint8_t Symbol;  // used in place of names to save memory & message size
+#if defined(pgm_read_byte)
+#define PROGMEM_BOUNDARY 0x8000
+#endif
 
 class Names
 {
     public:
         Names();
-        unsigned int find_key(const unsigned char *key, unsigned int length);
-        boolean insert_key(const unsigned char *key, unsigned int value);
-        boolean insert_key(const unsigned char *key, unsigned int length, unsigned int value);
-        Symbol get_symbol(const unsigned char *key, unsigned int length, unsigned int *count);
-        Symbol get_symbol(const unsigned char *key);
-        
-#ifdef DEBUG
-        void print();
+#if defined(pgm_read_byte)
+        unsigned int symbol(const __FlashStringHelper *name);
 #endif
+        unsigned int symbol(const char *name);
+        unsigned int symbol(const char *name, unsigned int length);
+        void print();
         float used();
             
     private:                
@@ -34,16 +33,14 @@ class Names
         {
             public:
             
-            const unsigned char *key;
+            const char *name;
             unsigned int length;
-            unsigned int value;
+            unsigned int symbol;
         };
-        
+
         unsigned int entries;
         HashEntry table[HASH_TABLE_SIZE];
-        unsigned int hash(const unsigned char *key, unsigned int length);
-        int strlen(const unsigned char *str);
-        int strcmp(const unsigned char *s1, unsigned int len1, const unsigned char *s2, unsigned int len2);
+        unsigned int hash(const char *name, unsigned int length);
 };
 
 #endif

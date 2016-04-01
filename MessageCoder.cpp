@@ -68,6 +68,22 @@ void MessageBuffer::set_buffer(unsigned char *buf, unsigned len)
     big_endian = (num.bytes[0] == 1 ? true : false);
 }
 
+void MessageBuffer::restart()
+{
+    index = 0;
+}
+
+void MessageBuffer::reset()
+{
+    size = index = 0;
+    overflow = false;
+}
+
+unsigned int MessageBuffer::remaining()
+{
+    return index == size;
+}
+
 boolean MessageBuffer::is_big_endian()
 {
     return big_endian;
@@ -93,7 +109,7 @@ unsigned int MessageBuffer::get_byte()
     if (index < length)
         return buffer[index++]; 
         
-    return 256;  // to signal error
+    return WOT_BUFFER_EMPTY;  // to signal error
 }
 
 unsigned int MessageBuffer::view_byte()
@@ -101,7 +117,7 @@ unsigned int MessageBuffer::view_byte()
     if (index < length)
         return buffer[index]; 
         
-    return 256;  // to signal error
+    return WOT_BUFFER_EMPTY;  // to signal error
 }
 
 boolean MessageBuffer::put_byte(unsigned char c)
@@ -121,9 +137,8 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
     unsigned int c;
     unsigned char *s;
 
-#ifdef DEBUG
-    PRINTLN(F("start object"));
-#endif    
+    Serial.println(F("start object"));
+   
     for (;;)
     {
         // get name
@@ -136,34 +151,30 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
             
             if (c)
             {
-#ifdef DEBUG
-                PRINTLN(F("unterminated string"));
-#endif
+                Serial.println(F("unterminated string"));
                 return false;
             }
             else
             {
-#ifdef DEBUG
-                PRINT(F("string \"")); PRINT((const char *)s); PRINTLN(F("\" :"));
-#endif
+                Serial.print(F("string \""));
+                Serial.print((const char *)s);
+                Serial.println(F("\" :"));
             }
         
             // get value
             
-            if (!decode(buffer))
+            if (!decode_value(buffer))
                 return false;
         }
         else if (WOT_SYM_BASE <= c && c < 256)
         {
             c = c - WOT_SYM_BASE;
-#ifdef DEBUG
-            PRINT(F("symbol "));
-            PRINT(c);
-            PRINT(F(" :\n"));
-#endif
+            Serial.print(F("symbol "));
+            Serial.print(c);
+            Serial.print(F(" :\n"));
             // get value
             
-            if (!decode(buffer))
+            if (!decode_value(buffer))
                 return false;
         }
         else if (c == WOT_END_OBJECT)
@@ -172,15 +183,11 @@ boolean MessageCoder::decode_object(MessageBuffer *buffer)
         }
         else
         {
-#ifdef DEBUF
-            PRINT(F("didn't find string or symbol for object property name"));
-#endif
+            Serial.print(F("didn't find string or symbol for object property name"));
             return false;
         }
     }
-#ifdef DEBUG
-    PRINTLN(F("end object"));
-#endif
+    Serial.println(F("end object"));
     return true;
 }
 
@@ -188,9 +195,7 @@ boolean MessageCoder::decode_array(MessageBuffer *buffer)
 {
     unsigned int c;
     
-#ifdef DEBUG
-    PRINTLN(F("start array"));
-#endif
+    Serial.println(F("start array"));
 
     for (;;)
     {
@@ -201,25 +206,22 @@ boolean MessageCoder::decode_array(MessageBuffer *buffer)
             
         if (c == WOT_END_OBJECT)
         {
-#ifdef DEBUG
-            PRINTLN(F("found unexpected end of object"));
-#endif
+            Serial.println(F("found unexpected end of object"));
             return false;
         }
             
-        if (!decode(buffer))
+        if (!decode_value(buffer))
             return false;
     }
 
-#ifdef DEBUG
-    PRINTLN(F("end array"));
-#endif
+    Serial.println(F("end array"));
     return true;
 }
 
-boolean MessageCoder::decode(MessageBuffer *buffer)
+boolean MessageCoder::decode_value(MessageBuffer *buffer)
 {
-    unsigned int c = buffer->get_byte();
+    unsigned int c;
+    c = buffer->get_byte();
     
     switch (c)
     {
@@ -231,45 +233,35 @@ boolean MessageCoder::decode(MessageBuffer *buffer)
     
         case WOT_STRING:
         {
-#ifdef DEBUG
             unsigned char *s = buffer->get_pointer();
-#endif
             while ((c = buffer->get_byte()) && c < 256); 
             
             if (c)
             {
-#ifdef DEBUG
-                PRINTLN(F("unterminated string"));
-#endif
+                Serial.println(F("unterminated string"));
                 return false;
             }
             else
             {
-#ifdef DEBUG
-                PRINT(F("string \""));
-                PRINT((const char *)s);
-                PRINTLN(F("\""));
-#endif
+                Serial.print(F("string \""));
+                Serial.print((const char *)s);
+                Serial.println(F("\""));
             }
             break;
         }
 
         case WOT_UNSIGNED_INT_8:
             c = buffer->get_byte();
-#ifdef DEBUG
-            PRINT(F("unsigned 8 bit integer "));
-            PRINTLN(c);
-#endif
+            Serial.print(F("unsigned 8 bit integer "));
+            Serial.println(c);
             break;
     
         case WOT_SIGNED_INT_8:
         {
             c = buffer->get_byte();
-#ifdef DEBUG
             uint16_t i = (uint16_t)c;
-            PRINT(F("signed 8 bit integer "));
-            PRINTLN(i);
-#endif
+            Serial.print(F("signed 8 bit integer "));
+            Serial.println(i);
             break;
         }
         
@@ -296,17 +288,13 @@ boolean MessageCoder::decode(MessageBuffer *buffer)
             
             if (c == WOT_UNSIGNED_INT_16)
             {
-#ifdef DEBUG
-                PRINT(F("unsigned 16 bit integer "));
-                PRINTLN(num.u);
-#endif
+                Serial.print(F("unsigned 16 bit integer "));
+                Serial.println(num.u);
             }
             else
             {
-#ifdef DEBUG
-                PRINT(F("signed 16 bit integer "));
-                PRINTLN(num.i);
-#endif
+                Serial.print(F("signed 16 bit integer "));
+                Serial.println(num.i);
             }
             break;
         }
@@ -340,83 +328,85 @@ boolean MessageCoder::decode(MessageBuffer *buffer)
 
             if (c == WOT_UNSIGNED_INT_32)
             {
-#ifdef DEBUG
-                PRINT(F("unsigned 32 bit integer "));
-                PRINTLN(num.u);
-#endif
+                Serial.print(F("unsigned 32 bit integer "));
+                Serial.println(num.u);
             }
             else if (c == WOT_SIGNED_INT_32)
             {
-#ifdef DEBUG
-                PRINT(F("signed 32 bit integer "));
-                PRINTLN(num.i);
-#endif
+                Serial.print(F("signed 32 bit integer "));
+                Serial.println(num.i);
             }
             else
             {
-#ifdef DEBUG
-                PRINT(F("float "));
-                PRINTLN(num.x);
-#endif
+                Serial.print(F("float "));
+                Serial.println(num.x);
             }
             break;
         }
         
         case WOT_VALUE_NULL:
-#ifdef DEBUG
-            PRINTLN(F("null"));
-#endif
+            Serial.println(F("null"));
             break;
         
         case WOT_VALUE_TRUE:
-#ifdef DEBUG
-            PRINTLN(F("true"));
-#endif
+            Serial.println(F("true"));
             break;
         
         case WOT_VALUE_FALSE:
-#ifdef DEBUG
-            PRINTLN(F("false"));
-#endif
+            Serial.println(F("false"));
             break;
+            
+        case WOT_END_OBJECT:
+            Serial.println(F("unexpected object end marker"));
+            return false;
+            
+        case WOT_END_ARRAY:
+            Serial.println(F("unexpected array end marker"));
+            return false;
         
         default:
         {
             if (WOT_RESERVED_START <= c && c <= WOT_RESRVED_END)
             {
-#ifdef DEBUG
-                PRINTLN(F("illegal use of reserved tag"));
-#endif
+                Serial.println(F("illegal use of reserved tag"));
                 return false;
             }
             else if (WOT_NUM_BASE <= c && c < WOT_SYM_BASE)
             {
-#ifdef DEBUG
                 uint16_t u = c - WOT_NUM_BASE;
-                PRINT(F("unsigned 4 bit integer "));
-                PRINTLN(u);
-#endif
-
+                Serial.print(F("unsigned 4 bit integer "));
+                Serial.println(u);
             }
             else if (WOT_SYM_BASE <= c && c < 256)
             {
                 c -= WOT_SYM_BASE;
-#ifdef DEBUG
-                PRINT(F("symbol "));
-                PRINTLN(c);
-#endif
+                Serial.print(F("symbol "));
+                Serial.println(c);
             }
             else // unexpected end of buffer
             {
-#ifdef DEBUG
-                PRINTLN(F("unexpectedly reached end of buffer"));
-#endif
+                Serial.println(F("unexpectedly reached end of buffer"));
                 return false;
             }
         }
     }
     
     return true;
+}
+
+boolean MessageCoder::decode(MessageBuffer *buffer)
+{
+    buffer->restart();
+    
+    if (decode_value(buffer))
+    {
+        if (!buffer->remaining())
+            return true;
+            
+        Serial.println(F("message isn't empty"));
+    }
+    
+    return false;
 }
 
 void MessageCoder::encode_unsigned8(MessageBuffer *buffer, unsigned char n)
@@ -567,9 +557,7 @@ void MessageCoder::encode_symbol(MessageBuffer *buffer, unsigned int sym)
 {
     if (sym > 200)
     {
-#ifdef DEBUG
-        PRINTLN(F("symbol out of range"));
-#endif
+        Serial.println(F("symbol out of range"));
     }
     else
     {
@@ -594,7 +582,7 @@ void MessageCoder::encode_false(MessageBuffer *buffer)
 
 void MessageCoder::encode_string(MessageBuffer *buffer, unsigned char *str)
 {
-    unsigned char c, *p = str;
+    unsigned char c, *p = (unsigned char *)str;
     
     buffer->put_byte(WOT_STRING);
     
@@ -603,6 +591,20 @@ void MessageCoder::encode_string(MessageBuffer *buffer, unsigned char *str)
         
     buffer->put_byte(0);
 }
+
+#if defined(pgm_read_byte)
+void MessageCoder::encode_string(MessageBuffer *buffer, const __FlashStringHelper * str)
+{
+    unsigned char c, *p = (unsigned char *)str;
+    
+    buffer->put_byte(WOT_STRING);
+    
+    while ((c = pgm_read_byte(p++)))
+        buffer->put_byte(c);
+        
+    buffer->put_byte(0);
+}
+#endif
 
 void MessageCoder::encode_object_start(MessageBuffer *buffer)
 {
@@ -624,56 +626,62 @@ void MessageCoder::encode_array_end(MessageBuffer *buffer)
     buffer->put_byte(WOT_END_ARRAY);
 }
 
-#ifdef DEBUG
-
 #define WOT_MESSAGE_LENGTH 128
 
+#if 0
 void MessageCoder::test()
 {
     MessageBuffer membuf;
-    MessageCoder coder;
     
     unsigned char buffer[WOT_MESSAGE_LENGTH];
     const float pi = 3.1415926;
     
-    PRINT(F("int has ")); PRINT(sizeof(int)); PRINTLN(F(" bytes"));
-    PRINT(F("long has ")); PRINT(sizeof(long)); PRINTLN(F(" bytes"));
-    PRINT(F("float has ")); PRINT(sizeof(float)); PRINTLN(F(" bytes"));
-    PRINT(F("double has ")); PRINT(sizeof(double)); PRINTLN(F(" bytes\n"));
+    Serial.print(F("int has ")); Serial.print(sizeof(int)); Serial.println(F(" bytes"));
+    Serial.print(F("long has ")); Serial.print(sizeof(long)); Serial.println(F(" bytes"));
+    Serial.print(F("float has ")); Serial.print(sizeof(float)); Serial.println(F(" bytes"));
+    Serial.print(F("double has ")); Serial.print(sizeof(double)); Serial.println(F(" bytes\n"));
     
     membuf.set_buffer(&buffer[0], WOT_MESSAGE_LENGTH);
-
-    coder.encode_string(&membuf, (unsigned char *)F("hello world"));
-    PRINT(F("used ")); PRINT(membuf.get_size()); PRINTLN(F(" bytes"));
-    PRINT(F("overflowed: ")); PRINTLN((membuf.overflowed() ? F("true") : F("false")));
-
-    coder.decode(&membuf);
     
-    membuf.set_buffer(&buffer[0], WOT_MESSAGE_LENGTH);
 
-    coder.encode_array_start(&membuf);
-    coder.encode_string(&membuf, (unsigned char *)F("one"));
-    coder.encode_string(&membuf, (unsigned char *)F("two"));
-    coder.encode_string(&membuf, (unsigned char *)F("three"));
-    coder.encode_symbol(&membuf, 79);
-    coder.encode_null(&membuf);
-    coder.encode_true(&membuf);
-    coder.encode_false(&membuf);
-    coder.encode_unsigned16(&membuf, 7);
-    coder.encode_unsigned16(&membuf, 24);
-    coder.encode_unsigned16(&membuf, 200);
-    coder.encode_unsigned16(&membuf, 300);
-    coder.encode_unsigned32(&membuf, 65536);
-    coder.encode_signed16(&membuf, -320);
-    coder.encode_signed16(&membuf, -32768);
-    coder.encode_signed32(&membuf, 32768);
-    coder.encode_float(&membuf, (float)pi);
-    coder.encode_array_end(&membuf);
+    MessageCoder::encode_string(&membuf, F("hello world"));
     
-    PRINT(F("used ")); PRINTLN(membuf.get_size()); PRINTLN(F(" bytes"));
-    PRINT(F("overflowed: ")); PRINTLN((membuf.overflowed() ? F("true") : F("false")));
+    if (membuf.overflowed())
+        Serial.println(F("overflowed: "));
+    else {
+        Serial.print(F("used "));
+        Serial.print(membuf.get_size());
+        Serial.println(F(" bytes"));
+        MessageCoder::decode(&membuf);
+    }
+    
+    membuf.reset();
+    MessageCoder::encode_array_start(&membuf);
+    MessageCoder::encode_string(&membuf, F("one"));
+    MessageCoder::encode_string(&membuf, F("two"));
+    MessageCoder::encode_string(&membuf, F("three"));
+    MessageCoder::encode_symbol(&membuf, 79);
+    MessageCoder::encode_null(&membuf);
+    MessageCoder::encode_true(&membuf);
+    MessageCoder::encode_false(&membuf);
+    MessageCoder::encode_unsigned16(&membuf, 7);
+    MessageCoder::encode_unsigned16(&membuf, 24);
+    MessageCoder::encode_unsigned16(&membuf, 200);
+    MessageCoder::encode_unsigned16(&membuf, 300);
+    MessageCoder::encode_unsigned32(&membuf, 65536);
+    MessageCoder::encode_signed16(&membuf, -320);
+    MessageCoder::encode_signed16(&membuf, -32768);
+    MessageCoder::encode_signed32(&membuf, 32768);
+    MessageCoder::encode_float(&membuf, (float)pi);
+    MessageCoder::encode_array_end(&membuf);
 
-    coder.decode(&membuf);
+    if (membuf.overflowed())
+        Serial.println(F("overflowed: "));
+    else {
+        Serial.print(F("used "));
+        Serial.print(membuf.get_size());
+        Serial.println(F(" bytes"));
+        MessageCoder::decode(&membuf);
+    }
 }
-
 #endif

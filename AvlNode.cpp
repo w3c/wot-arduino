@@ -34,20 +34,29 @@ AvlValue AvlNode::get_value()
     return value;
 }
 
-#ifdef DEBUG
-
 void AvlNode::print_keys(AvlIndex tree)
 {
     if (tree)
     {
         print_keys(AVLNODE(tree)->left);
-        PRINT(F("  "));
-        PRINTLN((int)AVLNODE(tree)->key);
+        Serial.print(F("  "));
+        Serial.println((int)AVLNODE(tree)->key);
         print_keys(AVLNODE(tree)->right);
     }
 }
 
-#endif
+void AvlNode::print(AvlIndex tree)
+{
+    if (tree)
+    {
+        print(AVLNODE(tree)->left);
+        Serial.print(F("  "));
+        Serial.print((unsigned int)AVLNODE(tree)->key);
+        Serial.print(F(" : "));
+        Serial.println((unsigned long)AVLNODE(tree)->value);
+        print(AVLNODE(tree)->right);
+    }
+}
 
 void AvlNode::apply(AvlIndex tree, AvlApplyFn applyFn, void *data)
 {
@@ -67,6 +76,17 @@ unsigned int AvlNode::get_size(AvlIndex tree)
     return 0;
 }
 
+void AvlNode::free(AvlIndex tree)
+{
+    if (tree)
+    {
+        free(AVLNODE(tree)->left);
+        free(AVLNODE(tree)->right);
+        node_pool_manager->free(AVLNODE(tree));
+        Serial.println(F("freeing AVL node"));
+    }
+}
+
 // allocate node from fixed memory pool
 AvlIndex AvlNode::new_node(AvlKey key, AvlValue value)
 {
@@ -75,12 +95,15 @@ AvlIndex AvlNode::new_node(AvlKey key, AvlValue value)
 
     if (node)
     {
+        Serial.println(F("allocating AVL node"));
         index = node - ((AvlNode *)node_pool) + 1;
         node->key = key;
         node->value = value;
         node->height = 1;
         node->left = node->right = 0;
     }
+    else
+        Serial.println(F("Out of memory for JSON Node pool"));
 
     return index;
 }
@@ -131,7 +154,7 @@ AvlKey AvlNode::last_key(AvlIndex tree)
 
 int AvlNode::tree_height(AvlIndex tree)
 {
-    if (tree)
+    if (!tree)
         return 0;
 
     int lh = tree_height(AVLNODE(tree)->left);
@@ -149,7 +172,6 @@ int AvlNode::node_height(AvlIndex node)
 // see http://en.wikipedia.org/wiki/AVL_tree
 AvlIndex AvlNode::left_left(AvlIndex p5)
 {
-    //printf("applying left left\n");
     AvlIndex p3 = AVLNODE(p5)->left;
     AVLNODE(p5)->left = AVLNODE(p3)->right;
     AVLNODE(p3)->right = p5;
@@ -160,7 +182,6 @@ AvlIndex AvlNode::left_left(AvlIndex p5)
 
 AvlIndex AvlNode::right_right(AvlIndex p3)
 {
-    //printf("applying right right\n");
     AvlIndex p5 = AVLNODE(p3)->right;
     AVLNODE(p3)->right = AVLNODE(p5)->left;
     AVLNODE(p5)->left = p3;
@@ -171,14 +192,12 @@ AvlIndex AvlNode::right_right(AvlIndex p3)
 
 AvlIndex AvlNode::left_right(AvlIndex p5)
 {
-    //printf("applying left right\n");
     AVLNODE(p5)->left = right_right(AVLNODE(p5)->left);
     return left_left(p5);
 }
 
 AvlIndex AvlNode::right_left(AvlIndex p3)
 {
-    //printf("applying right left\n");
     AVLNODE(p3)->right = left_left(AVLNODE(p3)->right);
     return right_right(p3);
 }
@@ -248,7 +267,8 @@ AvlIndex AvlNode::insert_key(AvlIndex tree, AvlKey key, AvlValue value)
         AVLNODE(tree)->right = insert_key(AVLNODE(tree)->right, key, value);
         tree = balance(tree);
     }
-    
-    // tree already has key
+    else // tree already has key
+        AVLNODE(tree)->value = value;
+
     return tree;
 }

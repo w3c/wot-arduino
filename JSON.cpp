@@ -2,33 +2,40 @@
 
 #include <ctype.h>
 #include <Arduino.h>
+#include "Strings.h"
 #include "NodePool.h"
 #include "AvlNode.h"
 #include "Names.h"
 #include "JSON.h"
+#include "WebThings.h"
 
 static WotNodePool *node_pool;
+static boolean gc_phase;
 
 void JSON::initialise_pool(WotNodePool *wot_node_pool)
 {
     node_pool = wot_node_pool;
 }
 
-JSON * JSON::parse(const char *src, Names *names)
-{
-    return parse(src, strlen(src), names);
-}
-
-JSON * JSON::parse(const char *src, unsigned int length, Names *names)
+#if defined(pgm_read_byte)
+JSON * JSON::parse(const __FlashStringHelper *src, Names *table)
 {
     Lexer lexer;
-    lexer.src = (unsigned char *)src;
-    lexer.length = length;
-    lexer.names = names;
-    
-#ifdef DEBUG
-    PRINT(F("parsing ")); PRINTLN(src);
+    lexer.src = ((char *)src)+PROGMEM_BOUNDARY;
+    lexer.length = Strings::strlen(lexer.src);
+    lexer.table = table;
+        
+    return parse_private(&lexer);
+}
 #endif
+
+JSON * JSON::parse(const char *src, Names *table)
+{
+    Lexer lexer;
+    lexer.src = src;
+    lexer.length = Strings::strlen(src);
+    lexer.table = table;
+    
     return parse_private(&lexer);
 }
 
@@ -59,20 +66,7 @@ JSON * JSON::parse_private(Lexer *lexer)
         case Signed_token:
             return new_signed(lexer->signed_num);
         default:
-#ifdef DEBUG
-            PRINTLN(F("JSON syntax error"));
-#endif
-            return null;
-    }
-    
-    token = lexer->get_token();
-    
-    if (token != Error_token)
-    {
-#ifdef DEBUG
-        PRINTLN(F("JSON syntax error"));
-#endif
-        return null;
+            Serial.println(F("JSON syntax error"));
     }
 
     return null;
@@ -80,7 +74,6 @@ JSON * JSON::parse_private(Lexer *lexer)
 
 JSON * JSON::parse_object(Lexer *lexer)
 {
-    unsigned int symcount = JSON_SYMBOL_BASE;
     JSON *object = new_object();
     Json_Token token = lexer->get_token();
     
@@ -92,8 +85,8 @@ JSON * JSON::parse_object(Lexer *lexer)
         if (token != String_token)
             break;
             
-        unsigned int symbol = lexer->names->get_symbol(lexer->token_src,
-                                        lexer->token_len, &symcount);
+        Symbol symbol = lexer->table->symbol(lexer->token_src,
+                                        lexer->token_len);
                                         
         token = lexer->get_token();
         
@@ -118,10 +111,8 @@ JSON * JSON::parse_object(Lexer *lexer)
     }
     
     // free incomplete object here along with its map from symbols to values
-    
-#ifdef DEBUG
-    PRINT(F("JSON syntax error in object, token is ")); PRINTLN(token);
-#endif
+
+    Serial.print(F("JSON syntax error in object, token is ")); Serial.println(token);
     return null;
 }
 
@@ -141,9 +132,7 @@ JSON * JSON::parse_array(Lexer *lexer)
             array->insert_array_item(index++, item);
         else
         {
-#ifdef DEBUG
-            PRINTLN(F("missing array item"));
-#endif
+            Serial.println(F("missing array item"));
             break;
         }
  
@@ -156,33 +145,29 @@ JSON * JSON::parse_array(Lexer *lexer)
             break;
     }
 
-#ifdef DEBUG
-    PRINTLN(F("JSON syntax error in array"));
-#endif
+    Serial.println(F("JSON syntax error in array"));
     return null;
 }
 
-#ifdef DEBUG
-
-void JSON::print_string(const unsigned char *name, unsigned int length)
+void JSON::print_string(const char *name, unsigned int length)
 {
-    int i;
+    unsigned int i;
     
-    PRINT("\"");
+    Serial.print(F("\""));
 
     for (i = 0; i < length; ++i)
-        PRINT(((const char)name[i]));
+        Serial.print((Strings::get_char(name++)));
         
-    PRINT(F("\""));
+    Serial.print(F("\""));
 }
 
 void JSON::print_name_value(AvlKey key, AvlValue value, void *context)
 {
-    PRINT(F(" ")); PRINT((unsigned int)key); PRINT(F(" : "));
+    Serial.print(F(" ")); Serial.print((unsigned int)key); Serial.print(F(" : "));
     ((JSON *)value)->print();
     
     if ((void *)value != context)
-        PRINT(F(","));
+        Serial.print(F(","));
 }
 
 void JSON::print_array_item(AvlKey key, AvlValue value, void *context)
@@ -190,7 +175,7 @@ void JSON::print_array_item(AvlKey key, AvlValue value, void *context)
     ((JSON *)value)->print();
     
     if ((void *)value != context)
-        PRINT(F(","));
+        Serial.print(F(","));
 }
 
 void JSON::print()
@@ -198,17 +183,17 @@ void JSON::print()
     switch (get_tag())
     {
         case Object_t:
-            PRINT(F(" {"));
+            Serial.print(F(" {"));
             AvlNode::apply(this->variant.object, (AvlApplyFn)print_name_value,
                  (JSON *)(AvlNode::get_node(AvlNode::last(this->variant.object)))->get_value());
-            PRINT(F("} "));
+            Serial.print(F("} "));
             break;
             
         case Array_t:
-            PRINT(F(" [ "));
+            Serial.print(F(" [ "));
             AvlNode::apply(this->variant.object, (AvlApplyFn)print_array_item,
                  (JSON *)(AvlNode::get_node(AvlNode::last(this->variant.object)))->get_value());
-            PRINT(F("] "));
+            Serial.print(F("] "));
             break;
             
         case String_t:
@@ -216,33 +201,33 @@ void JSON::print()
             break;
             
         case Unsigned_t:
-            PRINT(this->variant.u);
+            Serial.print(this->variant.u);
             break;
         case Signed_t:
-            PRINT(this->variant.i);
+            Serial.print(this->variant.i);
             break;
         case Float_t:
-            PRINT(this->variant.number);
+            Serial.print(this->variant.number);
             break;
                     
         case Boolean_t:
-            PRINT((this->variant.truth ? F(" true ") : F(" false ")));
+            Serial.print((this->variant.truth ? F(" true ") : F(" false ")));
             break;
             
         case Null_t:
-            PRINT(F(" null "));
+            Serial.print(F(" null "));
             break;
             
         case Function_t:
-            PRINT(F(" function "));
+            Serial.print(F(" function "));
             break;
             
         case Proxy_t:
-            PRINT(F(" proxy "));
+            Serial.print(F(" proxy "));
             break;
             
         case Thing_t:
-            PRINT(F(" thing "));
+            Serial.print(F(" thing "));
             break;
             
         case Unused_t:
@@ -250,7 +235,94 @@ void JSON::print()
     }
 }
 
-#endif
+void JSON::set_gc_phase(boolean phase)
+{
+    gc_phase = phase;
+}
+
+// mark this node and nodes reachable from it
+void JSON::reachable(boolean phase)
+{
+    if (!marked(phase))
+    {   
+        switch (get_tag())
+        {
+            case Object_t:           
+            case Array_t:
+                AvlNode::apply(this->variant.object, (AvlApplyFn)reachable_item, (void *)phase);
+                break;
+                
+            case Thing_t:
+                this->variant.thing->reachable(phase);
+                break;
+                
+            case Proxy_t:
+                this->variant.proxy->reachable(phase);
+                break;
+            
+            case Unused_t:
+                break;
+
+            default:
+                toggle_mark();
+                break;
+        }
+    }
+}
+
+void JSON::reachable_item(AvlKey key, AvlValue value, void *context)
+{
+    ((JSON *)value)->reachable((boolean)context);
+}
+
+// sweep this node and all nodes reachable from it that
+// haven't already been marked as reachable from roots
+void JSON::sweep(boolean phase)
+{
+    if (!marked(phase))
+    {
+        switch (get_tag())
+        {
+            case Object_t:           
+            case Array_t:
+                AvlNode::apply(this->variant.object, (AvlApplyFn)sweep_item, (void *)phase);
+                AvlNode::free(this->variant.object);
+                break;
+                
+            case Thing_t:
+                this->variant.thing->sweep(phase);
+                WebThings::remove_thing(this->variant.thing);
+                break;
+                
+            case Proxy_t:
+                this->variant.proxy->sweep(phase);
+                WebThings::remove_proxy(this->variant.proxy);
+                break;
+            
+            case Unused_t:
+                break;
+
+            default:
+                break;
+        }
+        
+        free();
+    }
+}
+
+
+void JSON::sweep_item(AvlKey key, AvlValue value, void *context)
+{
+    ((JSON *)value)->sweep((boolean)context);
+}
+
+void JSON::free()
+{
+    Serial.print("freeing JSON node, tag "); Serial.println(get_tag());
+    
+    // safe against already freed node
+    node_pool->free((wot_node_pool_t *)this);
+}
 
 // allocate node from fixed memory pool
 JSON * JSON::new_node()
@@ -258,7 +330,17 @@ JSON * JSON::new_node()
     JSON * node = (JSON *)(node_pool->allocate_node());
     
     if (node)
-        node->taglen = 0;
+    {
+        Serial.println("allocating JSON node");
+        node->set_tag(Null_t);
+        node->variant.number = 0.0;
+        
+        // set mark for this garbage collection cycle
+        if (gc_phase)
+            node->set_mark();
+        else
+            node->reset_mark();
+    }
     
     return node;
 }
@@ -327,7 +409,17 @@ JSON * JSON::new_null()
     return node;
 }
 
-JSON * JSON::new_string(unsigned char *str, unsigned int length)
+JSON * JSON::new_string(const __FlashStringHelper *str)
+{
+    return new_string(((char *)str)+PROGMEM_BOUNDARY);
+}
+
+JSON * JSON::new_string(char *str)
+{
+    return new_string(str, Strings::strlen(str));
+}
+
+JSON * JSON::new_string(char *str, unsigned int length)
 {
     JSON *node = JSON::new_node();
     
@@ -383,100 +475,109 @@ JSON * JSON::new_function(GenericFn func)
     return node;
 }
 
-Json_Tag JSON::json_type()
+// only JSON objects or arrays can have multiple
+// references, so they need to be added the set
+// of stale references, other nodes can be freed
+boolean JSON::free_leaves()
 {
-    return get_tag();
+    Json_Tag tag = get_tag();
+    
+    if (tag == Object_t || tag == Array_t)
+        return 0;
+    
+    free();
+    return 1;
 }
 
 Json_Tag JSON::get_tag()
 {
-    return (Json_Tag)(taglen & 15);
+    return (Json_Tag)(taglen & 0xF);
 }
 
 void JSON::set_tag(Json_Tag tag)
 {
-    taglen &= ~15;
+    taglen &= ~0xF;
     taglen |= (unsigned int)tag;
 }
+
+boolean JSON::marked(boolean phase)
+{
+    if (phase)
+        return !(taglen & 0x10);
+        
+    return taglen & 0x10;
+}
+
+void JSON::toggle_mark()
+{
+    if (taglen & 0x10)
+        taglen &= ~0x10;
+    else
+        taglen |= 0x10;
+}
+
+void JSON::set_mark()
+{
+    taglen |= 0x10;
+}
+
+void JSON::reset_mark()
+{
+    taglen &= ~0x10;
+}
+
+void JSON::set_obj_id(unsigned int id)
+{
+    taglen &= 0x1F;
+    taglen |= (id << 5);
+}
+
+unsigned int JSON::get_obj_id()
+{
+    return taglen >> 5;
+}
+
 void JSON::set_str_length(unsigned int length)
 {
-    taglen &= 15;
-    taglen |= (length << 4);
+    taglen &= 0x1F;
+    taglen |= (length << 5);
 }
 
 unsigned int JSON::get_str_length()
 {
-    return taglen >> 4;
+    return taglen >> 5;
 }
 
-boolean JSON::is_null()
-{
-    return (get_tag() == Null_t);
-}
-
-boolean JSON::get_boolean()
-{
-    if (get_tag() == Boolean_t)
-        return variant.truth;
-        
-    return false;
-}
-
-unsigned char * JSON::get_string(unsigned int *len)
-{
-    if (len)
-        *len = get_str_length();
-        
-    return variant.str;
-}
-
-unsigned int JSON::get_unsigned()
-{
-    if (get_tag() == Unsigned_t)
-        return variant.u;
-        
-    return 0;
-}
-
-int JSON::get_signed()
-{
-    if (get_tag() == Signed_t)
-        return variant.i;
-        
-    return 0;
-}
-
-float JSON::get_float()
-{
-    if (get_tag() == Float_t)
-        return variant.number;
-        
-    return 0.0;
-}
-
-Thing *JSON::get_thing()
-{
-    if (get_tag() == Thing_t)
-        return variant.thing;
-        
-    return null;
-}
-
-Proxy *JSON::get_proxy()
-{
-    if (get_tag() == Proxy_t)
-        return variant.proxy;
-        
-    return null;
-}
-
-JSON * JSON::retrieve_property(unsigned int symbol)
+JSON * JSON::retrieve_property(Symbol symbol)
 {
     AvlKey key = (AvlKey)symbol + 1;
+    AvlNode::print_keys(variant.object);
     
     if (get_tag() == Object_t)
         return (JSON *)AvlNode::find_key(variant.object, key);
         
+    return null;
+}
+
+void JSON::insert_property(Symbol symbol, JSON *new_value)
+{
+    if (get_tag() == Object_t) {
+        AvlKey key = (AvlKey)symbol + 1;
+        JSON *old_value =(JSON *)AvlNode::find_key(variant.object, key);
+        variant.object = AvlNode::insert_key(variant.object, key, (void *)new_value);
+        check_if_stale(old_value, new_value);
+    }
+}
+
+GenericFn JSON::retrieve_function(Symbol action)
+{
+    if (get_tag() == Object_t) {
+        JSON *func = (JSON *)AvlNode::find_key(variant.object, action);
+        
+        if (func && func->get_tag() == Function_t)
+            return func->variant.function;
+    }
+    
     return null;
 }
 
@@ -490,29 +591,6 @@ JSON * JSON::retrieve_array_item(unsigned int index)
     return null;
 }
 
-GenericFn JSON::retrieve_function(Symbol action)
-{
-    if (get_tag() == Object_t)
-    {
-        JSON *func = (JSON *)AvlNode::find_key(variant.object, action);
-        
-        if (func && func->get_tag() == Function_t)
-            return func->variant.function;
-    }
-    
-    return null;
-}
-
-// *** fix me to deal with updating existing values
-// *** so that we don't leak memory through lost nodes
-void JSON::insert_property(unsigned int symbol, JSON *value)
-{
-    AvlKey key = (AvlKey)symbol + 1;
-    
-    if (get_tag() == Object_t)
-        variant.object = AvlNode::insert_key(variant.object, key, (void *)value);
-}
-
 // Prepending is a lot harder and could be done
 // by appending a copy of the last node value then
 // shifting the values from one node to the next
@@ -522,21 +600,26 @@ void JSON::insert_property(unsigned int symbol, JSON *value)
 
 void JSON::append_array_item(JSON *value)
 {
-    if (get_tag() == Array_t)
-    {
+    if (get_tag() == Array_t) {
         AvlKey last = AvlNode::last_key(variant.object);
         insert_array_item((unsigned int)last, value);
     }
 }
 
-// *** fix me to deal with updating existing values
-// *** so that we don't leak memory through lost nodes
-void JSON::insert_array_item(unsigned int index, JSON *value)
+void JSON::insert_array_item(unsigned int index, JSON *new_value)
+{  
+    if (get_tag() == Array_t) {
+        AvlKey key = (AvlKey)index + 1;
+        JSON * old_value = (JSON *)AvlNode::find_key(variant.object, key);
+        variant.object =  AvlNode::insert_key(variant.object, key, (void *)new_value);
+        check_if_stale(old_value, new_value);
+    }
+}
+
+void JSON::check_if_stale(JSON * old_value, JSON * new_value)
 {
-    AvlKey key = (AvlKey)index + 1;
-    
-    if (get_tag() == Array_t)
-        variant.object =  AvlNode::insert_key(variant.object, key, (void *)value);
+    if (old_value && new_value != old_value)
+        WebThings::add_stale(old_value);
 }
 
 boolean JSON::Lexer::end_of_array()
@@ -611,7 +694,7 @@ Json_Token JSON::Lexer::get_number(unsigned int c)
     boolean negative = false;
     boolean real = false;
     int d = 0, e = 0;
-    token_src = src;
+    token_src = (char *)src;
     token_len = 0;
     
     if (c == '-')
@@ -697,9 +780,9 @@ Json_Token JSON::Lexer::get_special(unsigned int c)
     if (c == 'n')
     {
         if (length >= 4 &&
-            src[1] == 'u' &&
-            src[2] == 'l' &&
-            src[3] == 'l')
+            Strings::get_char(src+1) == 'u' &&
+            Strings::get_char(src+2) == 'l' &&
+            Strings::get_char(src+3) == 'l')
         {
             src += 4;
             length += 4;
@@ -709,9 +792,9 @@ Json_Token JSON::Lexer::get_special(unsigned int c)
     else if (c == 't')
     {
         if (length >= 4 &&
-            src[1] == 'r' &&
-            src[2] == 'u' &&
-            src[3] == 'e')
+            Strings::get_char(src+1) == 'r' &&
+            Strings::get_char(src+2) == 'u' &&
+            Strings::get_char(src+3) == 'e')
         {
             src += 4;
             length += 4;
@@ -721,10 +804,10 @@ Json_Token JSON::Lexer::get_special(unsigned int c)
     else if (c == 'f')
     {
         if (length >= 5 &&
-            src[1] == 'a' &&
-            src[2] == 'l' &&
-            src[3] == 's' &&
-            src[4] == 'e')
+            Strings::get_char(src+1) == 'a' &&
+            Strings::get_char(src+2) == 'l' &&
+            Strings::get_char(src+3) == 's' &&
+            Strings::get_char(src+4) == 'e')
         {
             src += 5;
             length += 5;
@@ -738,19 +821,20 @@ Json_Token JSON::Lexer::get_special(unsigned int c)
 Json_Token JSON::Lexer::get_string()
 {
     next_byte();
-    token_src = src;
+    token_src = (char *)src;
     token_len = 0;
     
     while (length > 0)
     {
         --length;
         
-        if (*src++ == '"')
+        if (Strings::get_char(src++) == '"')
             return String_token;
-
+        
         ++token_len;
     }
     
+    Serial.println(F("Missing trailing quote mark"));
     return Error_token;
 }
 
@@ -766,7 +850,7 @@ void JSON::Lexer::next_byte()
 unsigned int JSON::Lexer::peek_byte()
 {
     if (length > 0)
-        return *src;
+        return Strings::get_char(src);
     
     return 256;
 }
