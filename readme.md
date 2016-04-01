@@ -12,13 +12,13 @@ The Arduino boards like the Uno are extremely limited when it comes to RAM and F
 
 The server implements memory management for JSON nodes along with average length (AVL) binary trees for arrays and name/value sets. These are allocated from statically declared buffers to avoid issues that can arise with malloc and free.  A mark/sweep garbage collector is used to reclaim unused nodes when memory is running low. There is an encoder/decoder for binary encoding of JSON messages. This uses numeric symbols in place of property names where the symbols are deterministically generated from the thing data models.
 
-A very constrained web of things server can be used with a single sensor or actuator. This project will allow you to write drivers for simple sensors and actuators, without needing to deal with the details of the protocols. Developers will be able to script the sensors and actuators on a more powerful server where the Web of Things Framework provide the glue between the proxy object and the object it acts on behalf of.
+A constrained web of things server can be used with one or more sensors or actuators. This project will allow you to write drivers for simple sensors and actuators, without needing to deal with the details of the protocols. Developers will be able to script the sensors and actuators on a more powerful server where the Web of Things Framework provide the glue between the proxy object and the object it acts on behalf of.
 
 When starting up the server can use a fixed IP address or it can use DHCP for a dynamically assigned address. You can likewise use a fixed IP address and port for the gateway, or make use of multicast DNS for its discovery. The server will then register the things defined by the sketch with the gateway.
 
 Every attempt is being made to reduce the memory footprint. If you have suggestions for further improvments, please let us know!
 
-n.b. The readme.txt is generally more upto date when it comes to recent work on the server design.
+n.b. The readme.txt is generally more upto date when it comes to recent work on the server design. This is a work in progress and not yet complete!
 
 ## Prerequisites
 
