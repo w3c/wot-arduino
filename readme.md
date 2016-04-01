@@ -4,18 +4,21 @@ This will be an experimental implementation of the Web of Things Framework writt
 
 A hundred billion IoT devices are expected to be deployed over the next ten years. There are many IoT platforms, and an increasing number of IoT technologies. However, the IoT products are currently beset by silos and a lack of interoperability, which blocks the benefits of the network effect from taking hold.  At W3C, we are exploring the potential for bridging IoT platforms and devices through the World Wide Web via a new class of Web servers that are connected through a common framework, and available in a variety of scales from microcontrollers, to smart phones and home/office hubs, and cloud-based server farms.
 
-This framework involves virtual objects ("things") as proxies for physical and abstract entities. These things are modelled in terms of metadata, events, properties and actions, with bindings to scripting APIs and a variety of protocols, since no one protocol will fulfil all needs. This server will start with bindings to MQTT and CoAP.
+This framework involves software objects ("things") on behalf of physical and abstract entities. These things are modelled in terms of metadata, properties, actions and events, with bindings to scripting APIs and a variety of protocols, given that no one protocol will fulfil all needs. This server will start with bindings to TCP, based upon the native TCP support in the Arduino Ethernet Shield, thanks to the Wiznet W5100 network controller.
 
 ## Technical Details
 
-The Arduino boards like the Uno are extremely limited when it comes to RAM and Flash memory. There are a range of possibilities for IP connectivity. The Arduino Ethernet Shield is quite resource intensive. The ENC28J60 board provides an alternative for Wired Ethernet. For wireless, the ESP8266 can be used for a low cost WiFi connection. If you don't need IP connectivity, the NRF24L01+ can be used for point to point or mesh networks. Other possibilities include Bluetooth and ZigBee.
+The Arduino boards like the Uno are extremely limited when it comes to RAM and Flash memory. There are a range of possibilities for connectivity. The initial focus is on IP connectivity via the Arduino Ethernet Shield. Future work is expected on other technologies e.g. sensor networks using the Nordic nRF24L01+, and Bluetooth using the Bluetooth Bee V2.0 module.
 
-A very constrained web of things server can be used with a single sensor or actuator. Assuming IP connectivity, CoAP and MQTT are good choices for protocols.  This project will allow you to write drivers for simple sensors and actuators, without needing to deal with the details of the protocols. Developers will be able to script the sensors and actuators on a more powerful server where the Web of Things Framework provide the glue between the proxy object and the object it acts on behalf of.
+The server implements memory management for JSON nodes along with average length (AVL) binary trees for arrays and name/value sets. These are allocated from statically declared buffers to avoid issues that can arise with malloc and free.  A mark/sweep garbage collector is used to reclaim unused nodes when memory is running low. There is an encoder/decoder for binary encoding of JSON messages. This uses numeric symbols in place of property names where the symbols are deterministically generated from the thing data models.
+
+A very constrained web of things server can be used with a single sensor or actuator. This project will allow you to write drivers for simple sensors and actuators, without needing to deal with the details of the protocols. Developers will be able to script the sensors and actuators on a more powerful server where the Web of Things Framework provide the glue between the proxy object and the object it acts on behalf of.
+
+When starting up the server can use a fixed IP address or it can use DHCP for a dynamically assigned address. You can likewise use a fixed IP address and port for the gateway, or make use of multicast DNS for its discovery. The server will then register the things defined by the sketch with the gateway.
 
 Every attempt is being made to reduce the memory footprint. If you have suggestions for further improvments, please let us know!
 
-More design details can be found in the long thread [Design questions for implementing the Web of Things in C](https://github.com/w3c/wot-arduino/issues/1).
-
+n.b. The readme.txt is generally more upto date when it comes to recent work on the server design.
 
 ## Prerequisites
 
@@ -52,7 +55,7 @@ This work has been funded in part (through October 2015) by the European Union's
 
 (The MIT License)
 
-Copyright (c) 2015 Dave Raggett &lt;dsr@w3.org&gt;
+Copyright (c) 2015-2016 Dave Raggett &lt;dsr@w3.org&gt;
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the 'Software'), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
