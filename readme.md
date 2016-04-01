@@ -22,7 +22,9 @@ n.b. The readme.txt is generally more upto date when it comes to recent work on 
 
 ## Prerequisites
 
- *to be deterimined when we have some code that can be built and run*
+* An Arduino Uno and Wiznet W5100 based Ethernet Shield. These can be purchased very cheaply on ebay.
+* The Arduino IDE - note that many Arduino clones use the CH340G chip that isn't supported directly by the Arduino IDE. There are free drivers and installation instructions for different host platforms.
+* A knowledge of C++ and an appreciation of how to design for microcontrollers.
   
 ## Installation
 
