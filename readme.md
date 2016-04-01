@@ -23,6 +23,7 @@ n.b. The readme.txt is generally more upto date when it comes to recent work on 
 ## Prerequisites
 
 * An Arduino Uno and Wiznet W5100 based Ethernet Shield. These can be purchased very cheaply on ebay.
+* A wired Ethernet connection to your router, e.g. a broadband device like BT's Homehub.
 * The Arduino IDE - note that many Arduino clones use the CH340G chip that isn't supported directly by the Arduino IDE. There are free drivers and installation instructions for different host platforms.
 * A knowledge of C++ and an appreciation of how to design for microcontrollers.
   
